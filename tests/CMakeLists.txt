@@ -21,3 +21,12 @@ add_unit_test(
     gtest_main
     TARGET_NAME MythECS_SparseSetTest
 )
+
+add_unit_test(
+    "src/unit/src/include"
+    "src/unit/src/ecs/entity.cc"
+    entity
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_EntityTest
+)
