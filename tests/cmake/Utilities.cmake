@@ -1,23 +1,16 @@
-# ============================================================
-# Utilities.cmake
 #
-# Purpose:
-#   Collection of custom CMake helper functions for the tests.
+# Creates a unit test executable and registers it with CTest.
 #
-# Functions List:
-#   - add_unit_test(SRC_DIR LABEL [TARGET_NAME <name>])
-#       Creates a unit test executable and registers it with CTest.
-#       Parameters:
-#         SRC_DIR: Source directory containing test files
-#         LABEL: Label to categorize the test
-#         TARGET_NAME: Optional, custom target name
-#       Usage:
-#         include(${CMAKE_SOURCE_DIR}/cmake/Utilities.cmake)
-#         add_unit_test(./ main TARGET_NAME MythoECS_MainTest)
+# Parameters:
+#   INCLUDE_DIRS: Directories to include for the test
+#   SRC_FILES: Source files for the test
+#   LABEL: Label to categorize the test
+#   INTF_LIB_NAMES: Interface library names to link against
+#   ENTRY: Entry point for the test (e.g., gtest_main)
+#   TARGET_NAME: Optional, custom target name
 #
-# ============================================================
 
-function(add_unit_test SRC_DIR LABEL INTF_LIB_NAME)
+function(add_unit_test INCLUDE_DIRS SRC_FILES LABEL INTF_LIB_NAMES ENTRY)
     set(oneValueArgs TARGET_NAME)
     cmake_parse_arguments(MAT "" "TARGET_NAME" "" "${ARGN}")
 
@@ -27,13 +20,13 @@ function(add_unit_test SRC_DIR LABEL INTF_LIB_NAME)
         set(TARGET "MythECS_${LABEL}Tests")
     endif()
 
-    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/*.cc)
+    set(TEST_SOURCES ${SRC_FILES})
 
     add_executable(${TARGET} ${TEST_SOURCES})
 
-    target_include_directories(${TARGET} PRIVATE ${SRC_DIR}/*.hpp)
+    target_include_directories(${TARGET} PRIVATE ${INCLUDE_DIRS})
 
-    target_link_libraries(${TARGET} PRIVATE ${INTF_LIB_NAME} GTest::gtest GTest::gtest_main)
+    target_link_libraries(${TARGET} PRIVATE ${INTF_LIB_NAMES} ${ENTRY})
 
     # set compile options for the test executable
     target_compile_options(${TARGET} PRIVATE
