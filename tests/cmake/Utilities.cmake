@@ -27,11 +27,11 @@ function(add_unit_test SRC_DIR LABEL INTF_LIB_NAME)
         set(TARGET "MythECS_${LABEL}Tests")
     endif()
 
-    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/src/*.cc)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/*.cc)
 
     add_executable(${TARGET} ${TEST_SOURCES})
 
-    target_include_directories(${TARGET} PRIVATE ${SRC_DIR}/include)
+    target_include_directories(${TARGET} PRIVATE ${SRC_DIR}/*.hpp)
 
     target_link_libraries(${TARGET} PRIVATE ${INTF_LIB_NAME} GTest::gtest GTest::gtest_main)
 
