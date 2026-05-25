@@ -5,7 +5,7 @@
 #include "core/concept.hpp"
 
 namespace myth::ecs {
-    /*
+    /**
      * @brief A basic entity in the ECS, identified by ID and version.
      *
      * @tparam EntityIdentityT The unsigned integral type used for the entity ID.
@@ -27,8 +27,8 @@ namespace myth::ecs {
         /*! @brief A constant representing a null entity ID. */
         static constexpr entity_id_type null_entity_id = std::numeric_limits<entity_id_type>::max();
 
-        /*! @brief Default constructor that creates an entity with default ID and version. */
-        basic_entity() noexcept : _id(0), _version(0) {};
+        /*! @brief Default constructor that creates null_entity with the null_entity_id and default version. */
+        basic_entity() noexcept : _id(null_entity_id), _version(0) {}
 
         /*! @brief Constructor that creates an entity with the specified ID and version. */
         basic_entity(entity_id_type id, entity_version_type version = 0) noexcept : _id(id), _version(version) {}

@@ -9,9 +9,9 @@ using namespace myth::ecs;
 TEST(Entity, Construction) {
     basic_entity<uint32_t, uint16_t> entity1;
 
-    ASSERT_EQ(entity1.id(), 0);
+    ASSERT_EQ(entity1.id(), (basic_entity<uint32_t, uint16_t>::null_entity_id));
     ASSERT_EQ(entity1.version(), 0);
-    ASSERT_TRUE(entity1.valid());
+    ASSERT_FALSE(entity1.valid());
 
     basic_entity<uint32_t, uint16_t> entity2 { 42 };
 
@@ -43,9 +43,9 @@ TEST(Entity, NullEntity) {
 
     constexpr uint32_t null_id = std::numeric_limits<uint32_t>::max();
 
-    entity_type null_entity(null_id);
+    entity_type null_entity;
 
-    ASSERT_EQ(null_entity.id(), entity_type::null_entity_id);
+    ASSERT_EQ(null_entity.id(), null_id);
     ASSERT_EQ(null_entity.version(), 0);
     ASSERT_FALSE(null_entity.valid());
 }
