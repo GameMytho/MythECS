@@ -39,3 +39,12 @@ add_unit_test(
     gtest_main
     TARGET_NAME MythECS_EntitySetTest
 )
+
+add_unit_test(
+    "src/unit/src/include"
+    "src/unit/src/storage/entity_storage.cc"
+    entity_storage
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_EntityStorageTest
+)

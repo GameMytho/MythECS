@@ -120,6 +120,22 @@ namespace myth::core::container {
         }
 
         /**
+         * @brief Swap values stored in density vector and value indexes stored in sparsity vector by specified density vector index
+         * 
+         * @param lh The left-hand index
+         * @param rh The right-hand index
+         * 
+         * @warning Make sure density vector index is valid, otherwise the behavior is undefined.
+         */
+        void swap(size_type lh, size_type rh) noexcept {
+            value_type& lv = _density[lh];
+            value_type& rv = _density[rh];
+
+            std::swap(lv, rv);
+            std::swap(_sparsity[page(lv)][offset(lv)], _sparsity[page(rv)][offset(rv)]);
+        }
+
+        /**
          * @brief Returns the index of a value in the sparse set.
          *
          * @param value The value to search for.

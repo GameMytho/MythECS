@@ -27,6 +27,10 @@ namespace myth::storage {
         size_t PageSize = 256
     >
     class entity_set final {
+        /** @brief Friend class declaration for entity_storage. */
+        template<typename, typename, template<typename> typename, size_t, size_t>
+        friend class entity_storage;
+
     public:
         /** @brief The type of the entities stored in the set. */
         using entity_type = EntityType;
@@ -179,5 +183,26 @@ namespace myth::storage {
     private:
         entity_ids_type _ids;
         entity_versions_type _versions;
+
+    private:
+        /**
+         * @brief Swaps two entities in the set by their indices.
+         * 
+         * @param lh The index of the first entity to swap.
+         * @param rh The index of the second entity to swap.
+         */
+        void swap(size_type lh, size_type rh) noexcept {
+            _ids.swap(lh, rh);
+            std::swap(_versions[lh], _versions[rh]);
+        }
+
+        /**
+         * @brief Increments the version of the entity at the specified index.
+         * 
+         * @param index The index of the entity whose version to increment.
+         */
+        void version_next(size_type index) noexcept {
+            ++_versions[index];
+        }
     };
 } // namespace myth::storage

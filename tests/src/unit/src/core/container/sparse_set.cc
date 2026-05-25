@@ -190,3 +190,43 @@ TEST(SparseSet, Erase) {
 
     ASSERT_TRUE(set.empty());
 }
+
+TEST(SparseSet, Swap) {
+    sparse_set<uint32_t> set;
+
+    set.emplace(13);
+    set.emplace(42);
+    set.emplace(100);
+
+    ASSERT_EQ(set.size(), 3);
+    ASSERT_EQ(set[0], 13);
+    ASSERT_EQ(set[1], 42);
+    ASSERT_EQ(set[2], 100);
+    ASSERT_EQ(set.index(13), 0);
+    ASSERT_EQ(set.index(42), 1);
+    ASSERT_EQ(set.index(100), 2);
+
+    set.swap(0, 2);
+
+    ASSERT_EQ(set.size(), 3);
+    ASSERT_EQ(set[0], 100);
+    ASSERT_EQ(set[1], 42);
+    ASSERT_EQ(set[2], 13);
+    ASSERT_EQ(set.index(100), 0);
+    ASSERT_EQ(set.index(42), 1);
+    ASSERT_EQ(set.index(13), 2);
+
+    set.swap(0, 1);
+
+    ASSERT_EQ(set[0], 42);
+    ASSERT_EQ(set[1], 100);
+    ASSERT_EQ(set.index(42), 0);
+    ASSERT_EQ(set.index(100), 1);
+
+    set.swap(1, 1);
+
+    ASSERT_EQ(set[0], 42);
+    ASSERT_EQ(set[1], 100);
+    ASSERT_EQ(set.index(42), 0);
+    ASSERT_EQ(set.index(100), 1);
+}
