@@ -7,7 +7,7 @@
 #include "core/container/sparse_set.hpp"
 
 namespace myth::storage {
-    /*
+    /**
      * @brief A set of entities with associated IDs and versions.
      *
      * This class manages a collection of entities, where each entity is identified by a unique ID and has an associated version.
@@ -17,7 +17,7 @@ namespace myth::storage {
      * 
      * @tparam EntityType The type of the entities stored in the set, which must have an entity_id_type and entity_version_type defined.
      * @tparam Allocator The allocator type used for memory management of the underlying data structures. Defaults to std::allocator.
-     * @tparam CacheLineSize The size of a cache line in bytes, used for
+     * @tparam CacheLineSize The size of a cache line in bytes, used for cache-line alignment in the sparse set.
      * @tparam PageSize The number of entries in each page of the sparse set.
      */
     template<
@@ -36,10 +36,15 @@ namespace myth::storage {
         using entity_ids_type = ::myth::core::container::sparse_set<entity_id_type, Allocator, CacheLineSize, PageSize>;
         /** @brief The type used for sizes and indices in the entity set. */
         using size_type = typename entity_ids_type::size_type;
+        /** @brief The type used for indices of entities in the set. */
+        using entity_index_type = typename entity_ids_type::value_index_type;
         /** @brief The type of the entity versions. */
         using entity_version_type = typename entity_type::entity_version_type;
         /** @brief The type of the vector storing entity versions. */
         using entity_versions_type = std::vector<entity_version_type, Allocator<entity_version_type>>;
+
+        /** @brief A special value indicating an invalid index in the entity set. */
+        inline static constexpr entity_index_type null_entity_index = entity_ids_type::null_value_index;
 
         /** @brief Constructs an empty entity set. */
         entity_set() noexcept = default;
@@ -77,7 +82,7 @@ namespace myth::storage {
          * @return The index of the emplaced entity.
          * 
          * @warning Before calling this function, ensure that the entity does not already exist in the set by
-         * using the contains() function, otherwise the behavior will cause undefined behavior.
+         * using the contains() function, otherwise the behavior is undefined.
          */
         size_type emplace(const entity_type& entt) {
             _versions.push_back(entt.version());
@@ -90,7 +95,7 @@ namespace myth::storage {
          * @param entt The entity to erase.
          * 
          * @warning Before calling this function, ensure that the entity exists in the set by using the
-         * contains() function, otherwise the behavior will cause undefined behavior.
+         * contains() function, otherwise the behavior is undefined.
          */
         void erase(const entity_type& entt) noexcept {
             entity_id_type id = entt.id();
@@ -107,14 +112,16 @@ namespace myth::storage {
         /**
          * @brief Gets the index of an entity in the set by its ID.
          * 
-         * @param id The ID of the entity to find.
-         * @return The index of the entity if found, or the size of the set if not found.
-         * 
-         * @warning Before calling this function, ensure that the entity exists in the set by using the contains() function,
-         * otherwise the behavior will trigger access out of bounds and cause undefined behavior.
+         * @param entt The entity to find.
+         * @return The index of the entity if found, or null_entity_index if not found.
          */
-        [[nodiscard]] size_type index(const entity_type& entt) const noexcept {
-            return _ids.index(entt.id());
+        [[nodiscard]] entity_index_type index(const entity_type& entt) const noexcept {
+            size_type index = _ids.index(entt.id());
+            if (index < _versions.size() && _versions[index] == entt.version()) {
+                return index;
+            }
+
+            return null_entity_index;
         }
 
         /**
@@ -124,13 +131,8 @@ namespace myth::storage {
          * @return True if the entity exists, false otherwise.
          */
         [[nodiscard]] bool contains(const entity_type& entt) const noexcept {
-            entity_id_type id = entt.id();
-            if (!_ids.contains(id)) {
-                return false;
-            }
-
-            size_type index = _ids.index(id);
-            return index < _versions.size() && _versions[index] == entt.version();
+            size_type index = _ids.index(entt.id());
+            return index != null_entity_index && index < _versions.size() && _versions[index] == entt.version();
         }
 
         /**

@@ -8,20 +8,20 @@
 
 #include "core/concept.hpp"
 
-/**
- * @brief A sparse set implementation based on std::vector.
- * 
- * The sparse set is a data structure that provides efficient storage and retrieval of values based on their indices.
- * It consists of a density vector that stores the actual values and a sparsity vector that maps the indices to the positions
- * in the density vector. The sparsity vector is organized into pages, each containing a fixed number of entries, and is
- * aligned to cache line size for better performance.
- * 
- * @tparam Type The unsigned integral value type stored in the sparse set.
- * @tparam Allocator The allocator type used for memory management of the density and sparsity vectors. Defaults to std::allocator.
- * @tparam CacheLineSize The size of a cache line in bytes. Defaults to 64 bytes.
- * @tparam PageSize The number of entries in each page of the sparsity vector. Defaults to 256 entries.
- */
 namespace myth::core::container {
+    /**
+     * @brief A sparse set implementation based on std::vector.
+     * 
+     * The sparse set is a data structure that provides efficient storage and retrieval of values based on their indices.
+     * It consists of a density vector that stores the actual values and a sparsity vector that maps the indices to the positions
+     * in the density vector. The sparsity vector is organized into pages, each containing a fixed number of entries, and is
+     * aligned to cache line size for better performance.
+     * 
+     * @tparam Type The unsigned integral value type stored in the sparse set.
+     * @tparam Allocator The allocator type used for memory management of the density and sparsity vectors. Defaults to std::allocator.
+     * @tparam CacheLineSize The size of a cache line in bytes. Defaults to 64 bytes.
+     * @tparam PageSize The number of entries in each page of the sparsity vector. Defaults to 256 entries.
+     */
     template<
         ::myth::core::UnsignedIntegralType Type,
         template<typename> typename Allocator = std::allocator,
@@ -52,8 +52,6 @@ namespace myth::core::container {
         /** @brief Constructs a sparse set with the specified initial capacity for the density vector.
          * 
          * @param n The initial capacity for the density vector.
-         * 
-         * @note This constructor does not reserve enough space for the sparsity vector, as it will be resized as needed when values are inserted.
          */
         sparse_set(size_type n) {
             _density.reserve(n);
@@ -126,12 +124,14 @@ namespace myth::core::container {
          *
          * @param value The value to search for.
          * @return The index of the value in the density vector, or null_value_index if not found.
-         * 
-         * @warning before calling this function, make sure the value exists in the sparse set by calling contains() function,
-         * otherwise the behavior will trigger access out of bounds and cause undefined behavior.
          */
-        [[nodiscard]] size_type index(value_type value) const noexcept {
-            return _sparsity[page(value)][offset(value)];
+        [[nodiscard]] value_index_type index(value_type value) const noexcept {
+            size_type page_index = page(value);
+            if (page_index >= _sparsity.size()) {
+                return null_value_index;
+            }
+
+            return _sparsity[page_index][offset(value)];
         }
 
         /**
@@ -141,12 +141,12 @@ namespace myth::core::container {
          * @return true if the value exists in the sparse set, false otherwise.
          */
         [[nodiscard]] bool contains(value_type value) const noexcept {
-            size_type index = page(value);
-            if (index >= _sparsity.size()) {
+            size_type page_index = page(value);
+            if (page_index >= _sparsity.size()) {
                 return false;
             }
 
-            return _sparsity[index][offset(value)] != null_value_index;
+            return _sparsity[page_index][offset(value)] != null_value_index;
         }
 
         /**
