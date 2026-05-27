@@ -15,6 +15,15 @@ add_unit_test(
 
 add_unit_test(
     "src/unit/src/include"
+    "src/unit/src/core/type_info.cc"
+    type_info
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_TypeInfoTest
+)
+
+add_unit_test(
+    "src/unit/src/include"
     "src/unit/src/core/container/sparse_set.cc"
     sparse_set
     "MythECS;gtest"
