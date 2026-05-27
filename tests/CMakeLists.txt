@@ -33,6 +33,15 @@ add_unit_test(
 
 add_unit_test(
     "src/unit/src/include"
+    "src/unit/src/core/container/any_vector.cc"
+    any_vector
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_AnyVectorTest
+)
+
+add_unit_test(
+    "src/unit/src/include"
     "src/unit/src/ecs/entity.cc"
     entity
     "MythECS;gtest"
