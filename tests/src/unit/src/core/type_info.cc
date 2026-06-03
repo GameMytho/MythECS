@@ -91,6 +91,48 @@ TEST(TypeInfo, Move) {
     ASSERT_EQ(info3._swapper, swapper);
 }
 
+TEST(TypeInfo, Constexpr) {
+    constexpr ::myth::core::type_info info(sizeof(int), alignof(int), nullptr, nullptr, nullptr);
+
+    static_assert(info._size == sizeof(int));
+    static_assert(info._align == alignof(int));
+    static_assert(info._constructor == nullptr);
+    static_assert(info._destructor == nullptr);
+    static_assert(info._swapper == nullptr);
+
+    constexpr ::myth::core::type_info info2 { info };
+
+    static_assert(info2._size == sizeof(int));
+    static_assert(info2._align == alignof(int));
+    static_assert(info2._constructor == nullptr);
+    static_assert(info2._destructor == nullptr);
+    static_assert(info2._swapper == nullptr);
+
+    constexpr ::myth::core::type_info info3 = info;
+
+    static_assert(info3._size == sizeof(int));
+    static_assert(info3._align == alignof(int));
+    static_assert(info3._constructor == nullptr);
+    static_assert(info3._destructor == nullptr);
+    static_assert(info3._swapper == nullptr);
+
+    constexpr ::myth::core::type_info info4 { std::move(info) };
+
+    static_assert(info4._size == sizeof(int));
+    static_assert(info4._align == alignof(int));
+    static_assert(info4._constructor == nullptr);
+    static_assert(info4._destructor == nullptr);
+    static_assert(info4._swapper == nullptr);
+
+    constexpr ::myth::core::type_info info5 = std::move(info2);
+
+    static_assert(info5._size == sizeof(int));
+    static_assert(info5._align == alignof(int));
+    static_assert(info5._constructor == nullptr);
+    static_assert(info5._destructor == nullptr);
+    static_assert(info5._swapper == nullptr);
+}
+
 TEST(TypeInfoGenerator, GenForTrivialType) {
     ASSERT_TRUE(std::is_trivially_copyable_v<int>);
     ASSERT_TRUE(std::is_trivially_destructible_v<int>);

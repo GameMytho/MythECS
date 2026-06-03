@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <type_traits>
-#include <cstdint>
 #include <new>
 #include <utility>
 #include <cstring>
@@ -39,24 +38,81 @@ namespace myth::core {
          * @param destructor A pointer to a function that can destruct an object of the type in place, given a pointer to the object.
          * @param swapper A pointer to a function that can swap two objects of the type in place, given pointers to the two objects.
          */
-        type_info(size_type size, size_type align, constructor_type constructor, destructor_type destructor, swapper_type swapper) noexcept
+        constexpr type_info(size_type size, size_type align, constructor_type constructor, destructor_type destructor, swapper_type swapper) noexcept
             : _size(size), _align(align), _constructor(constructor), _destructor(destructor), _swapper(swapper) {}
 
         /** @brief Constructs a type_info object by copying another one. */
-        type_info(const type_info&) = default;
+        constexpr type_info(const type_info&) = default;
 
         /** @brief Constructs a type_info object by moving another one. */
-        type_info(type_info&&) noexcept = default;
+        constexpr type_info(type_info&&) noexcept = default;
 
         /** @brief Destroys the type_info object. */
-        ~type_info() = default;
+        constexpr ~type_info() noexcept = default;
 
         /** @brief Assigns the contents of another type_info object to this one. */
-        type_info& operator=(const type_info&) = default;
+        constexpr type_info& operator=(const type_info&) = default;
 
         /** @brief Moves the contents of another type_info object to this one. */
-        type_info& operator=(type_info&&) noexcept = default;
+        constexpr type_info& operator=(type_info&&) noexcept = default;
     };
+
+    namespace internal {
+        /**
+         * @brief A helper function for constructing objects of type T in place. For trivially copyable types, we can simply do
+         * byte-to-byte copying. For non-trivially copyable types, we need to use the appropriate constructor to construct the object
+         * in place. If the type is move constructible and not copy constructible, we can use the move constructor to construct the
+         * object from the source, otherwise we fall back to the copy constructor.
+         * 
+         * @param dest A pointer to the memory location where the object should be constructed.
+         * @param src A pointer to the source object from which to construct the new object.
+         */
+        template<typename T>
+        inline void constructor_impl(void* dest, void* src) {
+            if constexpr (std::is_trivially_copyable_v<T>) {
+                std::memcpy(dest, src, sizeof(T));
+            } else if constexpr (std::is_move_constructible_v<T> && !std::is_copy_constructible_v<T>) {
+                new (dest) T(std::move(*static_cast<T*>(src)));
+            } else {
+                new (dest) T(*static_cast<T*>(src));
+            }
+        }
+
+        /**
+         * @brief A helper function for destructing objects of type T in place. For trivially destructible types, we don't need to do
+         * anything to destruct the object. For non-trivially destructible types, we need to call the appropriate destructor to
+         * destruct the object in place.
+         * 
+         * @param obj A pointer to the object to be destructed.
+         */
+        template<typename T>
+        inline void destructor_impl(void* obj) {
+            if constexpr (std::is_trivially_destructible_v<T>) {
+                return;
+            }
+
+            static_cast<T*>(obj)->~T();
+        }
+
+        /**
+         * @brief A helper function for swapping objects of type T in place. For trivially copyable types, we can do byte-to-byte
+         * swapping using a temporary buffer. For non-trivially copyable types, we can use std::swap to swap the objects.
+         * 
+         * @param a A pointer to the first object to be swapped.
+         * @param b A pointer to the second object to be swapped.
+         */
+        template<typename T>
+        inline void swapper_impl(void* a, void* b) {
+            if constexpr (std::is_trivially_copyable_v<T>) {
+                std::byte temp[sizeof(T)];
+                std::memcpy(temp, a, sizeof(T));
+                std::memcpy(a, b, sizeof(T));
+                std::memcpy(b, temp, sizeof(T));
+            } else {
+                std::swap(*static_cast<T*>(a), *static_cast<T*>(b));
+            }
+        }
+    } // namespace internal
 
     /**
      * @brief A utility class for generating type_info structures for specific types. This class provides a static member function
@@ -74,44 +130,13 @@ namespace myth::core {
          * @tparam T The type for which to generate the type_info structure.
          */
         template<typename T>
-        static const info_type& gen() noexcept {
+        inline static const info_type& gen() noexcept {
             static info_type info(
                 sizeof(T),
                 alignof(T),
-                [](void* dest, void* src) {
-                    // For trivially copyable types, we can simply use memcpy to copy the object. For non-trivially copyable
-                    // types, we need to use the appropriate constructor to construct the object in place. If the type is move
-                    // constructible and not copy constructible, we can use the move constructor to construct the object from
-                    // the source, otherwise we fall back to the copy constructor.
-                    if constexpr (std::is_trivially_copyable_v<T>) {
-                        std::memcpy(dest, src, sizeof(T));
-                    } else if constexpr (std::is_move_constructible_v<T> && !std::is_copy_constructible_v<T>) {
-                        new (dest) T(std::move(*static_cast<T*>(src)));
-                    } else {
-                        new (dest) T(*static_cast<T*>(src));
-                    }
-                },
-                [](void* obj) {
-                    // For trivially destructible types, we don't need to do anything to destruct the object. For non-trivially
-                    // destructible types, we need to call the appropriate destructor to destruct the object in place.
-                    if constexpr (std::is_trivially_destructible_v<T>) {
-                        return;
-                    }
-
-                    static_cast<T*>(obj)->~T();
-                },
-                [](void* a, void* b) {
-                    // For trivially copyable types, we can use memcpy to swap the objects using a temporary buffer. For
-                    // non-trivially copyable types, we can use std::swap to swap the objects.
-                    if constexpr (std::is_trivially_copyable_v<T>) {
-                        uint8_t temp[sizeof(T)];
-                        std::memcpy(&temp, a, sizeof(T));
-                        std::memcpy(a, b, sizeof(T));
-                        std::memcpy(b, &temp, sizeof(T));
-                    } else {
-                        std::swap(*static_cast<T*>(a), *static_cast<T*>(b));
-                    }
-                }
+                &internal::constructor_impl<T>,
+                &internal::destructor_impl<T>,
+                &internal::swapper_impl<T>
             );
 
             return info;
