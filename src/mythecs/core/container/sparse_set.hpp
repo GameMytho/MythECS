@@ -65,7 +65,7 @@ namespace myth::core::container {
         sparse_set(sparse_set&&) noexcept = default;
 
         /** @brief Destructs the sparse set. */
-        ~sparse_set() = default;
+        ~sparse_set() noexcept = default;
 
         /** @brief Assigns the contents of another sparse set to this one. */
         sparse_set& operator=(const sparse_set&) = default;

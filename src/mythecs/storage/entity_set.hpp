@@ -70,7 +70,7 @@ namespace myth::storage {
         entity_set(entity_set&&) noexcept = default;
 
         /** @brief Destructs the entity set. */
-        ~entity_set() = default;
+        ~entity_set() noexcept = default;
 
         /** @brief Assigns another entity set to this one. */
         entity_set& operator=(const entity_set&) = default;

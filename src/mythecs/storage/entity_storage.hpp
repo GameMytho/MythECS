@@ -75,7 +75,7 @@ namespace myth::storage {
         }
 
         /** @brief Destructs the entity storage. */
-        ~entity_storage() = default;
+        ~entity_storage() noexcept = default;
 
         /** @brief Assigns another entity storage to this one. */
         entity_storage& operator=(const entity_storage&) = default;
