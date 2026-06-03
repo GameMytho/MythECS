@@ -65,3 +65,53 @@ TEST(Entity, Equality) {
     ASSERT_FALSE(entity1 == entity4);
     ASSERT_TRUE(entity1 != entity4);
 }
+
+TEST(Entity, Constexpr) {
+    using entity_type = basic_entity<uint32_t, uint16_t>;
+
+    constexpr entity_type null_entity;
+
+    static_assert(null_entity.id() == entity_type::null_entity_id);
+    static_assert(null_entity.version() == 0);
+    static_assert(!null_entity.valid());
+
+    constexpr entity_type entity1 { 42, 5 };
+
+    static_assert(entity1.id() == 42);
+    static_assert(entity1.version() == 5);
+    static_assert(entity1.valid());
+    static_assert(!(entity1 == null_entity));
+    static_assert(entity1 != null_entity);
+
+    constexpr entity_type entity2 { entity1 };
+
+    static_assert(entity2.id() == 42);
+    static_assert(entity2.version() == 5);
+    static_assert(entity2.valid());
+    static_assert(entity2 == entity1);
+    static_assert(!(entity2 != entity1));
+
+    constexpr entity_type entity3 = entity1;
+
+    static_assert(entity3.id() == 42);
+    static_assert(entity3.version() == 5);
+    static_assert(entity3.valid());
+    static_assert(entity3 == entity1);
+    static_assert(!(entity3 != entity1));
+
+    constexpr entity_type entity4 { std::move(entity1) };
+
+    static_assert(entity4.id() == 42);
+    static_assert(entity4.version() == 5);
+    static_assert(entity4.valid());
+    static_assert(entity4 == entity1);
+    static_assert(!(entity4 != entity1));
+
+    constexpr entity_type entity5 = std::move(entity1);
+
+    static_assert(entity5.id() == 42);
+    static_assert(entity5.version() == 5);
+    static_assert(entity5.valid());
+    static_assert(entity5 == entity1);
+    static_assert(!(entity5 != entity1));
+}
