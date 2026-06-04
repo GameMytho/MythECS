@@ -26,3 +26,21 @@ TEST(Concept, UnsignedIntegralType) {
     struct MyStruct {};
     EXPECT_FALSE((myth::core::UnsignedIntegralType<MyStruct>));
 }
+
+TEST(Concept, EBCOEligibleType) {
+    struct Empty {};
+    struct NonEmpty { int x; };
+    struct FinalEmpty final {};
+    struct FinalNonEmpty final { int x; };
+
+    EXPECT_TRUE((myth::core::EBCOEligibleType<Empty>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<NonEmpty>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<FinalEmpty>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<FinalNonEmpty>));
+
+    EXPECT_FALSE((myth::core::EBCOEligibleType<int>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<float>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<double>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<char*>));
+    EXPECT_FALSE((myth::core::EBCOEligibleType<bool>));
+}

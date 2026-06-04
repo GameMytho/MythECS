@@ -24,6 +24,15 @@ add_unit_test(
 
 add_unit_test(
     "src/unit/src/include"
+    "src/unit/src/core/compressed_pair.cc"
+    compressed_pair
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_CompressedPairTest
+)
+
+add_unit_test(
+    "src/unit/src/include"
     "src/unit/src/core/container/sparse_set.cc"
     sparse_set
     "MythECS;gtest"
