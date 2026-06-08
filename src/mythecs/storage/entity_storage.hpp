@@ -188,10 +188,23 @@ namespace myth::storage {
          * @brief Gets the index of an entity in the storage.
          *
          * @param entt The entity to find.
-         * @return The index of the entity, or null_entity_index if not found.
+         * @return The index of the entity if found.
+         * 
+         * @warning Before calling this function, ensure that the entity exists in the storage by using the
+         * contains() function, otherwise the behavior is undefined.
          */
         [[nodiscard]] entity_index_type index(const entity_type& entt) const noexcept {
-            entity_index_type index = _entities.index(entt);
+            return _entities.index(entt);
+        }
+
+        /**
+         * @brief Gets the index of an entity in the storage.
+         *
+         * @param entt The entity to find.
+         * @return The index of the entity, or null_entity_index if not found.
+         */
+        [[nodiscard]] entity_index_type checked_index(const entity_type& entt) const noexcept {
+            entity_index_type index = _entities.checked_index(entt);
             if (index < _count) {
                 return index;
             }
@@ -206,7 +219,7 @@ namespace myth::storage {
          * @return True if the entity is spawned, false otherwise.
          */
         [[nodiscard]] bool contains(const entity_type& entt) const noexcept {
-            entity_index_type index = _entities.index(entt);
+            entity_index_type index = _entities.checked_index(entt);
             return index != null_entity_index && index < _count;
         }
 
@@ -217,7 +230,7 @@ namespace myth::storage {
          * @return True if the entity has an associated value, false otherwise.
          */
         [[nodiscard]] bool alive(const entity_type& entt) const noexcept {
-            entity_index_type index = _entities.index(entt);
+            entity_index_type index = _entities.checked_index(entt);
             return index != null_entity_index && index < _values.size();
         }
 

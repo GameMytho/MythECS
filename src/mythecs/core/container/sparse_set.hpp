@@ -137,11 +137,24 @@ namespace myth::core::container {
 
         /**
          * @brief Returns the index of a value in the sparse set.
+         * 
+         * @param value The value to search for.
+         * @return The index of the value in the density vector.
+         * 
+         * @warning Before calling this function, ensure that the value exists in the sparse set by using the contains() function,
+         * otherwise the behavior is undefined.
+         */
+        [[nodiscard]] value_index_type index(value_type value) const noexcept {
+            return _sparsity[page(value)][offset(value)];
+        }
+
+        /**
+         * @brief Returns the index of a value in the sparse set.
          *
          * @param value The value to search for.
          * @return The index of the value in the density vector, or null_value_index if not found.
          */
-        [[nodiscard]] value_index_type index(value_type value) const noexcept {
+        [[nodiscard]] value_index_type safe_index(value_type value) const noexcept {
             size_type page_index = page(value);
             if (page_index >= _sparsity.size()) {
                 return null_value_index;
@@ -167,7 +180,7 @@ namespace myth::core::container {
 
         /**
          * @brief Clears all values from the sparse set, leaving it empty.
-        */
+         */
         void clear() noexcept {
             _density.clear();
             _sparsity.clear();
