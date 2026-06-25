@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <core/type_info.hpp>
 
+// ============================================================================
+// Construction - build a type_info from raw size/align/function pointers
+// ============================================================================
 TEST(TypeInfo, Construction) {
     auto constructor = [](void* dest, void* src) {
         new (dest) int(*static_cast<int*>(src));
@@ -21,6 +24,9 @@ TEST(TypeInfo, Construction) {
     ASSERT_EQ(info._swapper, swapper);
 }
 
+// ============================================================================
+// Copy - copy ctor and copy assignment preserve all fields
+// ============================================================================
 TEST(TypeInfo, Copy) {
     auto constructor = [](void* dest, void* src) {
         new (dest) int(*static_cast<int*>(src));
@@ -35,18 +41,21 @@ TEST(TypeInfo, Copy) {
     ::myth::core::type_info info1(sizeof(int), alignof(int), constructor, destructor, swapper);
     ::myth::core::type_info info2 { info1 };
 
+    // Source unchanged after copy ctor.
     ASSERT_EQ(info1._size, sizeof(int));
     ASSERT_EQ(info1._align, alignof(int));
     ASSERT_EQ(info1._constructor, constructor);
     ASSERT_EQ(info1._destructor, destructor);
     ASSERT_EQ(info1._swapper, swapper);
 
+    // Copy matches source.
     ASSERT_EQ(info2._size, sizeof(int));
     ASSERT_EQ(info2._align, alignof(int));
     ASSERT_EQ(info2._constructor, constructor);
     ASSERT_EQ(info2._destructor, destructor);
     ASSERT_EQ(info2._swapper, swapper);
 
+    // Copy assignment.
     ::myth::core::type_info info3 = info1;
 
     ASSERT_EQ(info3._size, sizeof(int));
@@ -56,6 +65,10 @@ TEST(TypeInfo, Copy) {
     ASSERT_EQ(info3._swapper, swapper);
 }
 
+// ============================================================================
+// Move - move ctor and move assignment; type_info is trivially copyable so
+// move is equivalent to copy (source remains valid)
+// ============================================================================
 TEST(TypeInfo, Move) {
     auto constructor = [](void* dest, void* src) {
         new (dest) int(*static_cast<int*>(src));
@@ -70,6 +83,7 @@ TEST(TypeInfo, Move) {
     ::myth::core::type_info info1(sizeof(int), alignof(int), constructor, destructor, swapper);
     ::myth::core::type_info info2 { std::move(info1) };
 
+    // type_info holds plain function pointers - move is just a copy.
     ASSERT_EQ(info1._size, sizeof(int));
     ASSERT_EQ(info1._align, alignof(int));
     ASSERT_EQ(info1._constructor, constructor);
@@ -82,6 +96,7 @@ TEST(TypeInfo, Move) {
     ASSERT_EQ(info2._destructor, destructor);
     ASSERT_EQ(info2._swapper, swapper);
 
+    // Move assignment.
     ::myth::core::type_info info3 = std::move(info2);
 
     ASSERT_EQ(info3._size, sizeof(int));
@@ -91,6 +106,9 @@ TEST(TypeInfo, Move) {
     ASSERT_EQ(info3._swapper, swapper);
 }
 
+// ============================================================================
+// Constexpr - construction, copy, and move all work at compile time
+// ============================================================================
 TEST(TypeInfo, Constexpr) {
     constexpr ::myth::core::type_info info(sizeof(int), alignof(int), nullptr, nullptr, nullptr);
 
@@ -100,6 +118,7 @@ TEST(TypeInfo, Constexpr) {
     static_assert(info._destructor == nullptr);
     static_assert(info._swapper == nullptr);
 
+    // Constexpr copy ctor.
     constexpr ::myth::core::type_info info2 { info };
 
     static_assert(info2._size == sizeof(int));
@@ -108,6 +127,7 @@ TEST(TypeInfo, Constexpr) {
     static_assert(info2._destructor == nullptr);
     static_assert(info2._swapper == nullptr);
 
+    // Constexpr copy assignment.
     constexpr ::myth::core::type_info info3 = info;
 
     static_assert(info3._size == sizeof(int));
@@ -116,6 +136,7 @@ TEST(TypeInfo, Constexpr) {
     static_assert(info3._destructor == nullptr);
     static_assert(info3._swapper == nullptr);
 
+    // Constexpr move ctor (move = copy for trivially-copyable type_info).
     constexpr ::myth::core::type_info info4 { std::move(info) };
 
     static_assert(info4._size == sizeof(int));
@@ -124,6 +145,7 @@ TEST(TypeInfo, Constexpr) {
     static_assert(info4._destructor == nullptr);
     static_assert(info4._swapper == nullptr);
 
+    // Constexpr move assignment.
     constexpr ::myth::core::type_info info5 = std::move(info2);
 
     static_assert(info5._size == sizeof(int));
@@ -133,6 +155,9 @@ TEST(TypeInfo, Constexpr) {
     static_assert(info5._swapper == nullptr);
 }
 
+// ============================================================================
+// gen<T>() for trivial types - uses memcpy-based copy, no-op destruct, byte-swap
+// ============================================================================
 TEST(TypeInfoGenerator, GenForTrivialType) {
     ASSERT_TRUE(std::is_trivially_copyable_v<int>);
     ASSERT_TRUE(std::is_trivially_destructible_v<int>);
@@ -142,6 +167,7 @@ TEST(TypeInfoGenerator, GenForTrivialType) {
     ASSERT_EQ(info._size, sizeof(int));
     ASSERT_EQ(info._align, alignof(int));
 
+    // Construct via placement-copy and verify.
     int x = 42;
     void* dest1 = operator new(sizeof(int), std::align_val_t(alignof(int)));
     info._constructor(dest1, &x);
@@ -152,16 +178,21 @@ TEST(TypeInfoGenerator, GenForTrivialType) {
     info._constructor(dest2, &y);
     ASSERT_EQ(*static_cast<int*>(dest2), 10);
 
+    // Swap via byte-copy and verify.
     info._swapper(dest1, dest2);
     ASSERT_EQ(*static_cast<int*>(dest1), 10);
     ASSERT_EQ(*static_cast<int*>(dest2), 42);
 
+    // Trivial destructor is a no-op (no double-free risk).
     info._destructor(dest1);
     operator delete(dest1, std::align_val_t(alignof(int)));
     info._destructor(dest2);
     operator delete(dest2, std::align_val_t(alignof(int)));
 }
 
+// ============================================================================
+// gen<T>() for non-trivial types - uses placement-new ctor, real dtor, std::swap
+// ============================================================================
 TEST(TypeInfoGenerator, GenForNonTrivialType) {
     struct NonTrivial {
         int value;
@@ -189,16 +220,21 @@ TEST(TypeInfoGenerator, GenForNonTrivialType) {
     info._constructor(dest2, &obj2);
     ASSERT_EQ(static_cast<NonTrivial*>(dest2)->value, 10);
 
+    // Non-trivial swapper uses std::swap.
     info._swapper(dest1, dest2);
     ASSERT_EQ(static_cast<NonTrivial*>(dest1)->value, 10);
     ASSERT_EQ(static_cast<NonTrivial*>(dest2)->value, 42);
 
+    // Non-trivial destructor calls ~NonTrivial().
     info._destructor(dest1);
     operator delete(dest1, std::align_val_t(alignof(NonTrivial)));
     info._destructor(dest2);
     operator delete(dest2, std::align_val_t(alignof(NonTrivial)));
 }
 
+// ============================================================================
+// gen<T>() for move-only types - not trivially copyable, but still swappable
+// ============================================================================
 TEST(TypeInfoGenerator, GenForMoveOnlyType) {
     struct MoveOnly {
         int value;
@@ -241,10 +277,14 @@ TEST(TypeInfoGenerator, GenForMoveOnlyType) {
     operator delete(dest2, std::align_val_t(alignof(MoveOnly)));
 }
 
+// ============================================================================
+// Idempotency - calling gen<T>() twice returns the same static record
+// ============================================================================
 TEST(TypeInfoGenerator, GenIsIdempotent) {
     auto info1 = ::myth::core::type_info_generator::gen<int>();
     auto info2 = ::myth::core::type_info_generator::gen<int>();
 
+    // Same type produces the identical type_info via static caching.
     ASSERT_EQ(info1._size, info2._size);
     ASSERT_EQ(info1._align, info2._align);
     ASSERT_EQ(info1._constructor, info2._constructor);
@@ -252,6 +292,9 @@ TEST(TypeInfoGenerator, GenIsIdempotent) {
     ASSERT_EQ(info1._swapper, info2._swapper);
 }
 
+// ============================================================================
+// Self-swap - swapping an element with itself is safe
+// ============================================================================
 TEST(TypeInfoGenerator, SwapperSelfSwap) {
     auto info = ::myth::core::type_info_generator::gen<int>();
 
@@ -260,6 +303,7 @@ TEST(TypeInfoGenerator, SwapperSelfSwap) {
     info._constructor(p, &x);
     ASSERT_EQ(*static_cast<int*>(p), 42);
 
+    // Self-swap must not corrupt the value.
     info._swapper(p, p);
     ASSERT_EQ(*static_cast<int*>(p), 42);
 

@@ -7,22 +7,28 @@
 using namespace myth::ecs;
 using namespace myth::storage;
 
+// ============================================================================
+// Functionalities - empty, emplace, contains, occupied, index, checked_index, clear
+// ============================================================================
 TEST(EntitySet, Functionalities) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
     entity_set<entity_type> set;
 
+    // Default-constructed set is empty.
     ASSERT_TRUE(set.empty());
     ASSERT_EQ(set.size(), 0);
     ASSERT_EQ(set.capacity(), 0);
 
     entity_type entity1 { 42, 5 };
 
+    // Not yet inserted: neither occupied (by id) nor contains (by id+version).
     ASSERT_FALSE(set.occupied(entity1.id()));
     ASSERT_FALSE(set.contains(entity1));
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
     set.emplace(entity1);
 
+    // After emplace: non-empty, allocated, reachable via all accessors.
     ASSERT_FALSE(set.empty());
     ASSERT_EQ(set.size(), 1);
     ASSERT_NE(set.capacity(), 0);
@@ -32,6 +38,7 @@ TEST(EntitySet, Functionalities) {
     ASSERT_EQ(set.checked_index(entity1), 0);
     ASSERT_EQ(set[0], entity1);
 
+    // Clear resets size but preserves capacity.
     set.clear();
 
     ASSERT_TRUE(set.empty());
@@ -42,6 +49,9 @@ TEST(EntitySet, Functionalities) {
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
 }
 
+// ============================================================================
+// Constructors - default, capacity, copy, move
+// ============================================================================
 TEST(EntitySet, Constructors) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
@@ -58,6 +68,7 @@ TEST(EntitySet, Constructors) {
     ASSERT_EQ(set1.checked_index(entity1), (entity_set<entity_type>::null_entity_index));
     set1.emplace(entity1);
 
+    // Copy-then-move construction chain.
     entity_set<entity_type> tmp { set1 };
     entity_set<entity_type> set2 { std::move(tmp) };
 
@@ -74,6 +85,9 @@ TEST(EntitySet, Constructors) {
     ASSERT_EQ(set2[0], entity1);
 }
 
+// ============================================================================
+// Copy - copy ctor and copy assignment; sets are independent
+// ============================================================================
 TEST(EntitySet, Copy) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
@@ -84,6 +98,7 @@ TEST(EntitySet, Copy) {
     ASSERT_FALSE(set1.contains(entity1));
     set1.emplace(entity1);
 
+    // Copy ctor - set2 is independent.
     entity_set<entity_type> set2 { set1 };
 
     ASSERT_EQ(set1.size(), 1);
@@ -94,6 +109,7 @@ TEST(EntitySet, Copy) {
     ASSERT_TRUE(set2.contains(entity1));
     ASSERT_EQ(set2[0], entity1);
 
+    // Mutate independently.
     ASSERT_FALSE(set1.contains(entity_type { 100, 5 }));
     set1.emplace(entity_type { 100, 5 });
 
@@ -103,6 +119,7 @@ TEST(EntitySet, Copy) {
     ASSERT_FALSE(set2.contains(entity_type { 300, 5 }));
     set2.emplace(entity_type { 300, 5 });
 
+    // Copy assignment - set2 replaced by set1's contents.
     set2 = set1;
 
     ASSERT_EQ(set1.size(), 3);
@@ -122,6 +139,9 @@ TEST(EntitySet, Copy) {
     ASSERT_EQ(set2[2], (entity_type { 200, 5 }));
 }
 
+// ============================================================================
+// Move - move ctor and move assignment; source left empty
+// ============================================================================
 TEST(EntitySet, Move) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
@@ -132,6 +152,7 @@ TEST(EntitySet, Move) {
     ASSERT_FALSE(set1.contains(entity1));
     set1.emplace(entity1);
 
+    // Move ctor.
     entity_set<entity_type> set2 { std::move(set1) };
 
     ASSERT_EQ(set1.size(), 0);
@@ -141,6 +162,7 @@ TEST(EntitySet, Move) {
     ASSERT_TRUE(set2.contains(entity1));
     ASSERT_EQ(set2[0], entity1);
 
+    // Moved-from set can be reused.
     ASSERT_FALSE(set1.contains(entity_type { 100, 5 }));
     set1.emplace(entity_type { 100, 5 });
 
@@ -150,6 +172,7 @@ TEST(EntitySet, Move) {
     ASSERT_FALSE(set2.contains(entity_type { 300, 5 }));
     set2.emplace(entity_type { 300, 5 });
 
+    // Move assignment.
     set2 = std::move(set1);
 
     ASSERT_EQ(set1.size(), 0);
@@ -164,6 +187,9 @@ TEST(EntitySet, Move) {
     ASSERT_EQ(set2[1], (entity_type { 200, 5 }));
 }
 
+// ============================================================================
+// Emplace - insert entities; verify version-checked lookup and stale rejection
+// ============================================================================
 TEST(EntitySet, Emplace) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
@@ -184,12 +210,13 @@ TEST(EntitySet, Emplace) {
     ASSERT_EQ(set[index1], entity1);
 
     {
+        // Stale entity: same id, older version - occupied() true, contains() false.
         entity_type stale { 42, 3 };
 
         ASSERT_TRUE(set.occupied(stale.id()));
         ASSERT_FALSE(set.contains(stale));
-        ASSERT_EQ(set.index(stale), set.index(entity1));
-        ASSERT_EQ(set.checked_index(stale), entity_set<entity_type>::null_entity_index);
+        ASSERT_EQ(set.index(stale), set.index(entity1));                // unsafe index: id match
+        ASSERT_EQ(set.checked_index(stale), entity_set<entity_type>::null_entity_index);  // safe: version mismatch
     }
 
     entity_type entity2 { 100, 10 };
@@ -235,6 +262,9 @@ TEST(EntitySet, Emplace) {
     ASSERT_EQ(set[index4], entity4);
 }
 
+// ============================================================================
+// Erase - remove entities; back-fill compacts, re-emplace with newer version
+// ============================================================================
 TEST(EntitySet, Erase) {
     using entity_type = basic_entity<uint32_t, uint16_t>;
 
@@ -283,11 +313,12 @@ TEST(EntitySet, Erase) {
     ASSERT_EQ(set.checked_index(entity3), 2);
     ASSERT_EQ(set.checked_index(entity4), 3);
 
+    // Erase entity2 - back-filled, compacted.
     set.erase(entity2);
 
     ASSERT_EQ(set.size(), 3);
     ASSERT_TRUE(set.occupied(entity1.id()));
-    ASSERT_FALSE(set.occupied(entity2.id()));
+    ASSERT_FALSE(set.occupied(entity2.id()));   // id slot cleared
     ASSERT_TRUE(set.occupied(entity3.id()));
     ASSERT_TRUE(set.occupied(entity4.id()));
     ASSERT_TRUE(set.contains(entity1));
@@ -296,7 +327,7 @@ TEST(EntitySet, Erase) {
     ASSERT_TRUE(set.contains(entity4));
     ASSERT_EQ(set.checked_index(entity2), entity_set<entity_type>::null_entity_index);
     ASSERT_EQ(set.index(entity1), 0);
-    ASSERT_EQ(set.index(entity4), 1);
+    ASSERT_EQ(set.index(entity4), 1);           // entity4 moved up
     ASSERT_EQ(set.index(entity3), 2);
 
     set.erase(entity1);
@@ -312,7 +343,7 @@ TEST(EntitySet, Erase) {
     ASSERT_TRUE(set.contains(entity4));
     ASSERT_EQ(set.checked_index(entity2), entity_set<entity_type>::null_entity_index);
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
-    ASSERT_EQ(set.index(entity3), 0);
+    ASSERT_EQ(set.index(entity3), 0);           // entity3 moved up
     ASSERT_EQ(set.index(entity4), 1);
 
     set.erase(entity4);
@@ -331,6 +362,7 @@ TEST(EntitySet, Erase) {
     ASSERT_EQ(set.checked_index(entity4), entity_set<entity_type>::null_entity_index);
     ASSERT_EQ(set.index(entity3), 0);
 
+    // Erase last entity - set becomes empty.
     set.erase(entity3);
 
     ASSERT_TRUE(set.empty());
@@ -347,9 +379,10 @@ TEST(EntitySet, Erase) {
     ASSERT_EQ(set.checked_index(entity4), entity_set<entity_type>::null_entity_index);
     ASSERT_EQ(set.checked_index(entity3), entity_set<entity_type>::null_entity_index);
 
+    // Re-emplace same id with a newer version - erased id can be reused with a fresh entity.
     entity_type e1_new { 42, 10 };
 
-    ASSERT_FALSE(set.occupied(e1_new.id()));
+    ASSERT_FALSE(set.occupied(e1_new.id()));   // id was freed by erase
     ASSERT_FALSE(set.contains(e1_new));
     ASSERT_EQ(set.checked_index(e1_new), entity_set<entity_type>::null_entity_index);
 
@@ -361,7 +394,8 @@ TEST(EntitySet, Erase) {
     ASSERT_EQ(set.index(e1_new), 0);
     ASSERT_EQ(set.checked_index(e1_new), 0);
 
-    ASSERT_EQ(set.index(entity1), set.index(e1_new));
-    ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
-    ASSERT_EQ(set.checked_index(e1_new), set.index(e1_new));
+    // Stale old-version entity still rejected.
+    ASSERT_EQ(set.index(entity1), set.index(e1_new));                      // same id -> same unsafe index
+    ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);  // old version rejected
+    ASSERT_EQ(set.checked_index(e1_new), set.index(e1_new));               // new version accepted
 }
