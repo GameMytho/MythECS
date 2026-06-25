@@ -75,3 +75,12 @@ add_unit_test(
     gtest_main
     TARGET_NAME MythECS_EntityStorageTest
 )
+
+add_unit_test(
+    "src/unit/src/include"
+    "src/unit/src/core/container/dense_set.cc"
+    dense_set
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_DenseSetTest
+)
