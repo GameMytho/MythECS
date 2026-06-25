@@ -14,7 +14,7 @@ struct TestType {
 // Functionalities - empty, emplace_back, access, clear
 // ============================================================================
 TEST(AnyVector, Functionalities) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     // A fresh vector is empty with zero capacity.
     ASSERT_TRUE(vec.empty());
@@ -45,7 +45,7 @@ TEST(AnyVector, Functionalities) {
 // Constructor - type-erased storage via type_info
 // ============================================================================
 TEST(AnyVector, Constructor) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     ASSERT_TRUE(vec.empty());
     ASSERT_EQ(vec.size(), 0);
@@ -66,7 +66,7 @@ TEST(AnyVector, Constructor) {
 // Move - resources transfer to destination; source is left empty
 // ============================================================================
 TEST(AnyVector, Move) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     TestType t { 1, 1.0f, "one" };
     vec.emplace_back(&t);
@@ -88,7 +88,7 @@ TEST(AnyVector, Move) {
 // Emplace - multiple emplace_back calls grow the vector
 // ============================================================================
 TEST(AnyVector, Emplace) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     TestType t1 { 1, 1.0f, "one" };
     TestType t2 { 2, 2.0f, "two" };
@@ -140,7 +140,7 @@ TEST(AnyVector, Emplace) {
 // Pop - pop_back removes elements in LIFO order
 // ============================================================================
 TEST(AnyVector, Pop) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     TestType t1 { 1, 1.0f, "one" };
     TestType t2 { 2, 2.0f, "two" };
@@ -184,7 +184,7 @@ TEST(AnyVector, Pop) {
 // Swap - swap two elements by index via byte-level swap (type-erased)
 // ============================================================================
 TEST(AnyVector, Swap) {
-    any_vector vec(myth::core::type_info_generator::gen<TestType>());
+    any_vector vec(myth::core::type_info_generator::info<TestType>());
 
     TestType t1 { 1, 1.0f, "one" };
     TestType t2 { 2, 2.0f, "two" };

@@ -156,13 +156,13 @@ TEST(TypeInfo, Constexpr) {
 }
 
 // ============================================================================
-// gen<T>() for trivial types - uses memcpy-based copy, no-op destruct, byte-swap
+// info<T>() for trivial types - uses memcpy-based copy, no-op destruct, byte-swap
 // ============================================================================
-TEST(TypeInfoGenerator, GenForTrivialType) {
+TEST(TypeInfoGenerator, InfoForTrivialType) {
     ASSERT_TRUE(std::is_trivially_copyable_v<int>);
     ASSERT_TRUE(std::is_trivially_destructible_v<int>);
 
-    auto info = ::myth::core::type_info_generator::gen<int>();
+    auto info = ::myth::core::type_info_generator::info<int>();
 
     ASSERT_EQ(info._size, sizeof(int));
     ASSERT_EQ(info._align, alignof(int));
@@ -191,9 +191,9 @@ TEST(TypeInfoGenerator, GenForTrivialType) {
 }
 
 // ============================================================================
-// gen<T>() for non-trivial types - uses placement-new ctor, real dtor, std::swap
+// info<T>() for non-trivial types - uses placement-new ctor, real dtor, std::swap
 // ============================================================================
-TEST(TypeInfoGenerator, GenForNonTrivialType) {
+TEST(TypeInfoGenerator, InfoForNonTrivialType) {
     struct NonTrivial {
         int value;
 
@@ -205,7 +205,7 @@ TEST(TypeInfoGenerator, GenForNonTrivialType) {
     ASSERT_FALSE(std::is_trivially_copyable_v<NonTrivial>);
     ASSERT_FALSE(std::is_trivially_destructible_v<NonTrivial>);
 
-    auto info = ::myth::core::type_info_generator::gen<NonTrivial>();
+    auto info = ::myth::core::type_info_generator::info<NonTrivial>();
 
     ASSERT_EQ(info._size, sizeof(NonTrivial));
     ASSERT_EQ(info._align, alignof(NonTrivial));
@@ -233,9 +233,9 @@ TEST(TypeInfoGenerator, GenForNonTrivialType) {
 }
 
 // ============================================================================
-// gen<T>() for move-only types - not trivially copyable, but still swappable
+// info<T>() for move-only types - not trivially copyable, but still swappable
 // ============================================================================
-TEST(TypeInfoGenerator, GenForMoveOnlyType) {
+TEST(TypeInfoGenerator, InfoForMoveOnlyType) {
     struct MoveOnly {
         int value;
 
@@ -252,7 +252,7 @@ TEST(TypeInfoGenerator, GenForMoveOnlyType) {
     ASSERT_TRUE(std::is_move_constructible_v<MoveOnly>);
     ASSERT_FALSE(std::is_trivially_copyable_v<MoveOnly>);
 
-    auto info = ::myth::core::type_info_generator::gen<MoveOnly>();
+    auto info = ::myth::core::type_info_generator::info<MoveOnly>();
 
     ASSERT_EQ(info._size, sizeof(MoveOnly));
     ASSERT_EQ(info._align, alignof(MoveOnly));
@@ -278,11 +278,11 @@ TEST(TypeInfoGenerator, GenForMoveOnlyType) {
 }
 
 // ============================================================================
-// Idempotency - calling gen<T>() twice returns the same static record
+// Idempotency - calling info<T>() twice returns the same static record
 // ============================================================================
-TEST(TypeInfoGenerator, GenIsIdempotent) {
-    auto info1 = ::myth::core::type_info_generator::gen<int>();
-    auto info2 = ::myth::core::type_info_generator::gen<int>();
+TEST(TypeInfoGenerator, InfoIsIdempotent) {
+    auto info1 = ::myth::core::type_info_generator::info<int>();
+    auto info2 = ::myth::core::type_info_generator::info<int>();
 
     // Same type produces the identical type_info via static caching.
     ASSERT_EQ(info1._size, info2._size);
@@ -296,7 +296,7 @@ TEST(TypeInfoGenerator, GenIsIdempotent) {
 // Self-swap - swapping an element with itself is safe
 // ============================================================================
 TEST(TypeInfoGenerator, SwapperSelfSwap) {
-    auto info = ::myth::core::type_info_generator::gen<int>();
+    auto info = ::myth::core::type_info_generator::info<int>();
 
     int x = 42;
     void* p = operator new(sizeof(int), std::align_val_t(alignof(int)));
@@ -309,4 +309,26 @@ TEST(TypeInfoGenerator, SwapperSelfSwap) {
 
     info._destructor(p);
     operator delete(p, std::align_val_t(alignof(int)));
+}
+
+// ============================================================================
+// id<T>() - sequential assignment - each new type gets the next counter value
+// ============================================================================
+TEST(TypeInfoGenerator, IdSequential) {
+    auto id0 = ::myth::core::type_info_generator::id<int>();
+    auto id1 = ::myth::core::type_info_generator::id<double>();
+
+    // Different types receive distinct identifiers.
+    ASSERT_NE(id0, id1);
+}
+
+// ============================================================================
+// id<T>() - idempotency - same type always returns the same cached identifier
+// ============================================================================
+TEST(TypeInfoGenerator, IdIdempotent) {
+    auto id0 = ::myth::core::type_info_generator::id<int>();
+    auto id1 = ::myth::core::type_info_generator::id<int>();
+
+    // Same type returns the same cached identifier.
+    ASSERT_EQ(id0, id1);
 }

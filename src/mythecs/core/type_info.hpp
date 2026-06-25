@@ -115,31 +115,57 @@ namespace myth::core {
     } // namespace internal
 
     /**
-     * @brief A utility class for generating type_info structures for specific types. This class provides a static member function
-     * that can generate a type_info structure for any given type T, using the size and alignment of T, and providing appropriate
-     * constructor, destructor, and swapper functions for managing objects of type T.
+     * @brief A utility class that provides cached type information and unique sequential identifiers for types.
+     *
+     * `info<T>()` returns a const reference to a statically cached `type_info` record containing the size,
+     * alignment, and lifecycle function pointers for `T`. `id<T>()` returns a dense sequential `uint32_t`
+     * identifier assigned on first invocation - suitable for use as an array index in component pools.
      */
-    struct type_info_generator final {
+    class type_info_generator final {
+    public:
         /** @brief The type of the generated type_info structure. */
         using info_type = type_info;
+        /** @brief The type of the generated identifier. */
+        using id_type = uint32_t;
 
         /**
-         * @brief Generates a type_info structure for the specified type T, and the result will be cached for subsequent calls with
-         * the same type.
-         * 
-         * @tparam T The type for which to generate the type_info structure.
+         * @brief Returns a const reference to a statically cached type_info record for T.
+         *
+         * On first invocation, constructs and caches a type_info with the size, alignment, and
+         * lifecycle function pointers (constructor / destructor / swapper) for T. Subsequent
+         * calls return the same cached record.
+         *
+         * @tparam T The type for which to retrieve the type_info record.
          */
         template<typename T>
-        inline static const info_type& gen() noexcept {
-            static info_type info(
-                sizeof(T),
-                alignof(T),
+        inline static const info_type& info() noexcept {
+            static info_type record(
+                sizeof(T), alignof(T),
                 &internal::constructor_impl<T>,
                 &internal::destructor_impl<T>,
                 &internal::swapper_impl<T>
             );
 
-            return info;
+            return record;
         }
+
+        /**
+         * @brief Returns a dense sequential type identifier for T.
+         *
+         * On first invocation for a given T, assigns the next available `uint32_t` counter value
+         * and caches it. Subsequent calls return the same cached identifier. Suitable for use as
+         * a component-pool array index.
+         *
+         * @tparam T The type for which to retrieve the identifier.
+         */
+        template<typename T>
+        inline static id_type id() noexcept {
+            static id_type id = _cur++;
+
+            return id;
+        }
+
+    private:
+        inline static id_type _cur = 0;
     };
 } // namespace myth::core
