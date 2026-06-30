@@ -75,7 +75,7 @@ namespace myth::core::container {
          * @param capacity  The minimum number of elements to reserve capacity for.
          * @param allocator The allocator for internal containers.
          */
-        dense_set(size_type capacity, const allocator_type& allocator = allocator_type{}) noexcept
+        dense_set(size_type capacity, const allocator_type& allocator = allocator_type{})
             : dense_set{capacity, hasher_type{}, keyeq_type{}, allocator} {}
 
         /**
@@ -87,7 +87,7 @@ namespace myth::core::container {
          * @param hasher    The hash functor to use.
          * @param allocator The allocator for internal containers.
          */
-        dense_set(size_type capacity, const hasher_type& hasher, const allocator_type& allocator) noexcept
+        dense_set(size_type capacity, const hasher_type& hasher, const allocator_type& allocator)
             : dense_set{capacity, hasher, keyeq_type{}, allocator} {}
 
         /**
@@ -103,7 +103,7 @@ namespace myth::core::container {
          * @param keyeq     The key-equality functor to use.
          * @param allocator The allocator for internal containers.
          */
-        dense_set(size_type capacity, const hasher_type& hasher, const keyeq_type& keyeq, const allocator_type& allocator) noexcept
+        dense_set(size_type capacity, const hasher_type& hasher, const keyeq_type& keyeq, const allocator_type& allocator)
             : _threshold{default_threshold}, _sparsity{allocator, hasher}, _density{allocator, keyeq} {
             reserve(capacity);
         }
@@ -151,30 +151,34 @@ namespace myth::core::container {
 
     public:
         /**
-         * @brief Inserts a key into the set. If the key already exists, this is a no-op.
+         * @brief Inserts a key into the set and returns true if success, otherwise returns false.
          *
-         * If the sparsity array is empty (i.e. the set is in a moved-from state), `rehash(0u)`
-         * is called first to initialize the bucket array. Hashes the key to locate its bucket,
-         * walks the bucket's chain to check for duplicates, appends a new node to the density
-         * array (with the current bucket head as its next link), sets the bucket head to the
-         * new node, and triggers a rehash if the load factor exceeds `_threshold`.
+         * If the key already exists, it is not inserted again and return false. If the sparsity array 
+	 * is empty (i.e. the set is in a moved-from state), `rehash(0u)` is called first to initialize
+	 * the bucket array. Hashes the key to locate its bucket, walks the bucket's chain to check for
+         * duplicates, appends a new node to the density array (with the current bucket head as its next
+	 * link), sets the bucket head to the new node, and triggers a rehash if the load factor exceeds
+	 * `_threshold`, then returns true.
          *
          * @param key The key to insert.
+         * @return True if success, otherwise false.
          */
-        void emplace(const key_type& key) {
+        [[nodiscard]] bool emplace(const key_type& key) {
             [[unlikely]] if (_sparsity.first().empty()) {
                 rehash(0u);
             }
 
-            size_type index = key_to_bucket(key);
+            size_type bc = key_to_bucket(key);
 
-            if (find_index(key, index) != null_key_index) {
-                return;
+            if (size_type index = find_index(key, bc); index != null_key_index) {
+                return false;
             }
 
-            _density.first().emplace_back(_sparsity.first()[index], key);
-            _sparsity.first()[index] = size() - 1;
+            _density.first().emplace_back(_sparsity.first()[bc], key);
+            _sparsity.first()[bc] = size() - 1;
             rehash_if_required();
+
+            return true;
         }
 
         /**
@@ -193,8 +197,7 @@ namespace myth::core::container {
             }
 
             size_type index = key_to_bucket(key);
-            size_type* cur = &_sparsity.first()[index];
-            for (; *cur != null_key_index; cur = &_density.first()[*cur].first) {
+            for (size_type* cur = &_sparsity.first()[index]; *cur != null_key_index; cur = &_density.first()[*cur].first) {
                 if (_density.second()(_density.first()[*cur].second, key)) {
                     const size_type idx = *cur;
                     *cur = _density.first()[*cur].first;
@@ -219,11 +222,12 @@ namespace myth::core::container {
          */
         void swap(size_type lh, size_type rh) {
             const key_type& lk = _density.first()[lh].second;
-            size_type* lp = &_sparsity.first()[key_to_bucket(lk)];
-            for (; *lp != lh; lp = &_density.first()[*lp].first) {}
-
             const key_type& rk = _density.first()[rh].second;
+
+            size_type* lp = &_sparsity.first()[key_to_bucket(lk)];
             size_type* rp = &_sparsity.first()[key_to_bucket(rk)];
+
+            for (; *lp != lh; lp = &_density.first()[*lp].first) {}
             for (; *rp != rh; rp = &_density.first()[*rp].first) {}
 
             *lp = rh;
