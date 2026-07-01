@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <utility>
+#include <new>
 
 #include "core/type_info.hpp"
 

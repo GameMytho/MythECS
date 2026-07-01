@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include "core/container/sparse_set.hpp"
 

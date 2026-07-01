@@ -3,6 +3,13 @@
 #include <bit>
 #include <cmath>
 #include <vector>
+#include <cstddef>
+#include <memory>
+#include <tuple>
+#include <limits>
+#include <utility>
+#include <algorithm>
+#include <functional>
 #include <core/compressed_pair.hpp>
 
 namespace myth::core::container {
