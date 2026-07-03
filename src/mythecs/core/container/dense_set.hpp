@@ -10,7 +10,10 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
-#include <core/compressed_pair.hpp>
+
+#include "core/compressed_pair.hpp"
+
+using ::myth::core::compressed_pair;
 
 namespace myth::core::container {
     /**
@@ -51,11 +54,11 @@ namespace myth::core::container {
         /** @brief The type of the density array (a vector of nodes). */
         using nodes_type = std::vector<node_type, Allocator<node_type>>;
         /** @brief The density container: a compressed_pair of (nodes vector, key-equality functor). */
-        using density_type = myth::core::compressed_pair<nodes_type, keyeq_type>;
+        using density_type = compressed_pair<nodes_type, keyeq_type>;
         /** @brief The type of the sparsity array (a vector of bucket head indices). */
         using buckets_type = std::vector<size_type, Allocator<size_type>>;
         /** @brief The sparsity container: a compressed_pair of (buckets vector, hash functor). */
-        using sparsity_type = myth::core::compressed_pair<buckets_type, hasher_type>;
+        using sparsity_type = compressed_pair<buckets_type, hasher_type>;
 
         /** @brief The default load-factor threshold that triggers a rehash. */
         inline static constexpr float default_threshold = 0.875f;
@@ -459,4 +462,4 @@ namespace myth::core::container {
             return null_key_index;
         }
     };
-}
+} // namespace myth::core::container

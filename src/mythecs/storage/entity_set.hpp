@@ -7,6 +7,8 @@
 
 #include "core/container/sparse_set.hpp"
 
+using ::myth::core::container::sparse_set;
+
 namespace myth::storage {
     /**
      * @brief A set of entities with associated IDs and versions.
@@ -38,7 +40,7 @@ namespace myth::storage {
         /** @brief The type of the entity IDs. */
         using entity_id_type = typename entity_type::entity_id_type;
         /** @brief The type of the set of entity IDs. */
-        using entity_ids_type = ::myth::core::container::sparse_set<entity_id_type, Allocator, CacheLineSize, PageSize>;
+        using entity_ids_type = sparse_set<entity_id_type, Allocator, CacheLineSize, PageSize>;
         /** @brief The type used for sizes and indices in the entity set. */
         using size_type = typename entity_ids_type::size_type;
         /** @brief The type used for indices of entities in the set. */

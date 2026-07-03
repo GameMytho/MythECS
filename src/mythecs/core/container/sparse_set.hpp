@@ -9,6 +9,8 @@
 
 #include "core/concept.hpp"
 
+using ::myth::core::UnsignedIntegralType;
+
 namespace myth::core::container {
     /**
      * @brief A sparse set implementation based on std::vector.
@@ -24,7 +26,7 @@ namespace myth::core::container {
      * @tparam PageSize The number of entries in each page of the sparsity vector. Defaults to 256 entries.
      */
     template<
-        ::myth::core::UnsignedIntegralType Type,
+        UnsignedIntegralType Type,
         template<typename> typename Allocator = std::allocator,
         size_t CacheLineSize = 64,
         size_t PageSize = 256

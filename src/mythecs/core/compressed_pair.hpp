@@ -188,12 +188,12 @@ namespace myth::core {
 } // namespace myth::core
 
 namespace std {
-    /** @brief Specialization of `tuple_size` for `myth::core::compressed_pair`. */
+    /** @brief Specialization of `tuple_size` for `::myth::core::compressed_pair`. */
     template<typename First, typename Second>
-    struct tuple_size<myth::core::compressed_pair<First, Second>> : std::integral_constant<size_t, 2u> {};
+    struct tuple_size<::myth::core::compressed_pair<First, Second>> : std::integral_constant<size_t, 2u> {};
 
-    /** @brief Specialization of `tuple_element` for `myth::core::compressed_pair`. */
+    /** @brief Specialization of `tuple_element` for `::myth::core::compressed_pair`. */
     template<size_t Index, typename First, typename Second>
     requires (Index <= 1u)
-    struct tuple_element<Index, myth::core::compressed_pair<First, Second>> : std::conditional<Index == 0u, First, Second> {};
+    struct tuple_element<Index, ::myth::core::compressed_pair<First, Second>> : std::conditional<Index == 0u, First, Second> {};
 } // namespace std

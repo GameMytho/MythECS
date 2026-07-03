@@ -4,6 +4,8 @@
 
 #include "core/concept.hpp"
 
+using ::myth::core::UnsignedIntegralType;
+
 namespace myth::ecs {
     /**
      * @brief A basic entity in the ECS, identified by ID and version.
@@ -12,8 +14,8 @@ namespace myth::ecs {
      * @tparam EntityVersionT The unsigned integral type used for the entity version.
      */
     template<
-        ::myth::core::UnsignedIntegralType EntityIdentityT,
-        ::myth::core::UnsignedIntegralType EntityVersionT
+        UnsignedIntegralType EntityIdentityT,
+        UnsignedIntegralType EntityVersionT
     >
     class basic_entity final {
     public:
