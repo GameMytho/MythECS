@@ -86,14 +86,15 @@ namespace myth::storage {
          * @brief Emplaces an entity into the set.
          *
          * @param entt The entity to emplace.
+         * 
          * @return The index of the emplaced entity.
          * 
          * @warning Before calling this function, ensure that the entity does not already exist in the set by
          * using the occupied() function, otherwise the behavior is undefined.
          */
-        size_type emplace(const entity_type& entt) {
+        size_type emplace_back(const entity_type& entt) {
             _versions.push_back(entt.version());
-            return _ids.emplace(entt.id());
+            return _ids.emplace_back(entt.id());
         }
 
         /**
@@ -120,6 +121,7 @@ namespace myth::storage {
          * @brief Gets the index of an entity in the set.
          * 
          * @param entt The entity to find.
+         * 
          * @return The index of the entity if found.
          * 
          * @warning Before calling this function, ensure that the entity exists in the set by using the
@@ -133,6 +135,7 @@ namespace myth::storage {
          * @brief Gets the index of an entity in the set by its ID.
          * 
          * @param entt The entity to find.
+         * 
          * @return The index of the entity if found, or null_entity_index if not found.
          */
         [[nodiscard]] entity_index_type checked_index(const entity_type& entt) const noexcept {
@@ -151,6 +154,7 @@ namespace myth::storage {
          * An entity ID can be occupied by at most one entity at a time.
          *
          * @param id The entity ID to check.
+         * 
          * @return True if the entity ID is already occupied, false otherwise.
          */
         [[nodiscard]] bool occupied(entity_id_type id) const noexcept {
@@ -161,6 +165,7 @@ namespace myth::storage {
          * @brief Checks if an entity exists in the set.
          * 
          * @param entt The entity to check.
+         * 
          * @return True if the entity exists, false otherwise.
          */
         [[nodiscard]] bool contains(const entity_type& entt) const noexcept {

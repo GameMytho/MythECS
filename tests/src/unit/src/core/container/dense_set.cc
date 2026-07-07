@@ -39,7 +39,7 @@ TEST(DenseSet, Functionalities) {
     ASSERT_EQ(set.index(13), dense_set_type::null_key_index);
 
     // Emplace returns true for the newly inserted key.
-    bool res13 = set.emplace(13);
+    bool res13 = set.emplace_back(13);
     ASSERT_EQ(res13, true);
     ASSERT_EQ(set[0], 13);
 
@@ -54,7 +54,7 @@ TEST(DenseSet, Functionalities) {
     ASSERT_EQ(set[0], 13);
 
     // Duplicate emplace - returns false for the existing element.
-    ASSERT_EQ(set.emplace(13), false);
+    ASSERT_EQ(set.emplace_back(13), false);
     ASSERT_EQ(set.size(), 1);
     ASSERT_TRUE(set.contains(13));
     ASSERT_EQ(set[set.index(13)], 13);
@@ -119,7 +119,7 @@ TEST(DenseSet, Copy) {
 
     ASSERT_FALSE(set1.contains(13));
     ASSERT_EQ(set1.index(13), dense_set_type::null_key_index);
-    bool res13 = set1.emplace(13);
+    bool res13 = set1.emplace_back(13);
     ASSERT_EQ(res13, true);
 
     // Copy construct - set2 is an independent copy of set1.
@@ -138,17 +138,17 @@ TEST(DenseSet, Copy) {
     // Mutate the two sets independently.
     ASSERT_FALSE(set1.contains(42));
     ASSERT_EQ(set1.index(42), dense_set_type::null_key_index);
-    bool res42 = set1.emplace(42);
+    bool res42 = set1.emplace_back(42);
     ASSERT_EQ(res42, true);
 
     ASSERT_FALSE(set1.contains(100));
     ASSERT_EQ(set1.index(100), dense_set_type::null_key_index);
-    bool res100 = set1.emplace(100);
+    bool res100 = set1.emplace_back(100);
     ASSERT_EQ(res100, true);
 
     ASSERT_FALSE(set2.contains(0));
     ASSERT_EQ(set2.index(0), dense_set_type::null_key_index);
-    bool res0 = set2.emplace(0);
+    bool res0 = set2.emplace_back(0);
     ASSERT_EQ(res0, true);
 
     // Copy assignment - set2 is replaced by a copy of set1.
@@ -190,7 +190,7 @@ TEST(DenseSet, Move) {
 
     ASSERT_FALSE(set1.contains(13));
     ASSERT_EQ(set1.index(13), dense_set_type::null_key_index);
-    bool res13 = set1.emplace(13);
+    bool res13 = set1.emplace_back(13);
     ASSERT_EQ(res13, true);
 
     // Move construct - set1's resources transfer to set2; set1 becomes empty.
@@ -209,17 +209,17 @@ TEST(DenseSet, Move) {
     // A moved-from set is valid-but-unspecified; emplace() re-initializes it automatically.
     ASSERT_FALSE(set1.contains(42));
     ASSERT_EQ(set1.index(42), dense_set_type::null_key_index);
-    bool res42 = set1.emplace(42);
+    bool res42 = set1.emplace_back(42);
     ASSERT_EQ(res42, true);
 
     ASSERT_FALSE(set1.contains(100));
     ASSERT_EQ(set1.index(100), dense_set_type::null_key_index);
-    bool res100 = set1.emplace(100);
+    bool res100 = set1.emplace_back(100);
     ASSERT_EQ(res100, true);
 
     ASSERT_FALSE(set2.contains(0));
     ASSERT_EQ(set2.index(0), dense_set_type::null_key_index);
-    bool res0 = set2.emplace(0);
+    bool res0 = set2.emplace_back(0);
     ASSERT_EQ(res0, true);
 
     // Move assignment - set1's resources transfer to set2; set2's old content is freed.
@@ -236,10 +236,10 @@ TEST(DenseSet, Move) {
     dense_set_type set3;
 
     ASSERT_FALSE(set3.contains(13));
-    bool res13_new = set3.emplace(13);
+    bool res13_new = set3.emplace_back(13);
     ASSERT_EQ(res13, true);
     ASSERT_FALSE(set3.contains(42));
-    bool res42_new = set3.emplace(42);
+    bool res42_new = set3.emplace_back(42);
     ASSERT_EQ(res42, true);
 
     dense_set_type set4{ std::move(set3), std::allocator<int>{} };
@@ -255,7 +255,7 @@ TEST(DenseSet, Move) {
     set4.clear();
     ASSERT_TRUE(set4.empty());
 
-    bool res7 = set4.emplace(7);
+    bool res7 = set4.emplace_back(7);
     ASSERT_EQ(res7, true);
     ASSERT_TRUE(set4.contains(7));
     ASSERT_EQ(set4.size(), 1);
@@ -271,7 +271,7 @@ TEST(DenseSet, Emplace) {
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.index(13), dense_set_type::null_key_index);
 
-    bool res13 = set.emplace(13);
+    bool res13 = set.emplace_back(13);
     ASSERT_EQ(res13, true);
     ASSERT_EQ(set[0], 13);
     ASSERT_EQ(set.index(13), 0);
@@ -282,7 +282,7 @@ TEST(DenseSet, Emplace) {
     ASSERT_FALSE(set.contains(42));
     ASSERT_EQ(set.index(42), dense_set_type::null_key_index);
 
-    bool res42 = set.emplace(42);
+    bool res42 = set.emplace_back(42);
     ASSERT_EQ(res42, true);
     ASSERT_EQ(set[1], 42);
     ASSERT_EQ(set.index(42), 1);
@@ -293,7 +293,7 @@ TEST(DenseSet, Emplace) {
     ASSERT_FALSE(set.contains(100));
     ASSERT_EQ(set.index(100), dense_set_type::null_key_index);
 
-    bool res100 = set.emplace(100);
+    bool res100 = set.emplace_back(100);
     ASSERT_EQ(res100, true);
     ASSERT_EQ(set[2], 100);
     ASSERT_EQ(set.index(100), 2);
@@ -304,7 +304,7 @@ TEST(DenseSet, Emplace) {
     ASSERT_FALSE(set.contains(0));
     ASSERT_EQ(set.index(0), dense_set_type::null_key_index);
 
-    bool res0 = set.emplace(0);
+    bool res0 = set.emplace_back(0);
     ASSERT_EQ(res0, true);
     ASSERT_EQ(set[3], 0);
     ASSERT_EQ(set.index(0), 3);
@@ -312,11 +312,11 @@ TEST(DenseSet, Emplace) {
     ASSERT_TRUE(set.contains(0));
 
     // Duplicate emplace - return false for the existing element.
-    ASSERT_EQ(set.emplace(0), false);
+    ASSERT_EQ(set.emplace_back(0), false);
     ASSERT_EQ(set.size(), 4);
     ASSERT_TRUE(set.contains(0));
 
-    ASSERT_EQ(set.emplace(100), false);
+    ASSERT_EQ(set.emplace_back(100), false);
     ASSERT_EQ(set.size(), 4);
     ASSERT_TRUE(set.contains(100));
 
@@ -325,7 +325,7 @@ TEST(DenseSet, Emplace) {
     ASSERT_TRUE(set.empty());
     ASSERT_EQ(set.size(), 0);
 
-    bool res42_new = set.emplace(42);
+    bool res42_new = set.emplace_back(42);
     ASSERT_EQ(res42_new, true);
     ASSERT_EQ(set[0], 42);
     ASSERT_EQ(set.index(42), 0);
@@ -343,22 +343,22 @@ TEST(DenseSet, Erase) {
 
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.index(13), dense_set_type::null_key_index);
-    bool res13 = set.emplace(13);
+    bool res13 = set.emplace_back(13);
     ASSERT_EQ(res13, true);
 
     ASSERT_FALSE(set.contains(42));
     ASSERT_EQ(set.index(42), dense_set_type::null_key_index);
-    bool res42 = set.emplace(42);
+    bool res42 = set.emplace_back(42);
     ASSERT_EQ(res42, true);
 
     ASSERT_FALSE(set.contains(100));
     ASSERT_EQ(set.index(100), dense_set_type::null_key_index);
-    bool res100 = set.emplace(100);
+    bool res100 = set.emplace_back(100);
     ASSERT_EQ(res100, true);
 
     ASSERT_FALSE(set.contains(0));
     ASSERT_EQ(set.index(0), dense_set_type::null_key_index);
-    bool res0 = set.emplace(0);
+    bool res0 = set.emplace_back(0);
     ASSERT_EQ(res0, true);
 
     ASSERT_EQ(set.size(), 4);
@@ -414,9 +414,9 @@ TEST(DenseSet, Erase) {
     ASSERT_EQ(set.size(), 0);
 
     // Erase non-existent key from non-empty set - must be a no-op.
-    bool res13_new = set.emplace(13);
+    bool res13_new = set.emplace_back(13);
     ASSERT_EQ(res13_new, true);
-    bool res42_new = set.emplace(42);
+    bool res42_new = set.emplace_back(42);
     ASSERT_EQ(res42_new, true);
     ASSERT_EQ(set.size(), 2);
 
@@ -428,7 +428,7 @@ TEST(DenseSet, Erase) {
     // Emplace after erase - chain integrity preserved.
     set.erase(13);
     ASSERT_FALSE(set.contains(13));
-    ASSERT_EQ(set.emplace(13), true);
+    ASSERT_EQ(set.emplace_back(13), true);
     ASSERT_TRUE(set.contains(13));
     ASSERT_EQ(set.size(), 2);
     ASSERT_TRUE(set.contains(42));
@@ -445,7 +445,7 @@ TEST(DenseSet, Rehash) {
     // Insert 9 elements to trigger at least one rehash (8 -> 16 buckets).
     for (int i = 0; i < 9; ++i) {
         ASSERT_FALSE(set.contains(i));
-        bool res = set.emplace(i);
+        bool res = set.emplace_back(i);
 	ASSERT_EQ(res, true);
         ASSERT_TRUE(set.contains(i));
         ASSERT_EQ(set[set.index(i)], i);
@@ -490,7 +490,7 @@ TEST(DenseSet, Rehash) {
 
     size_t cap_before = set2.capacity();
     for (int i = 0; i < 100; ++i) {
-        bool res = set2.emplace(i);
+        bool res = set2.emplace_back(i);
 	ASSERT_EQ(res, true);
     }
     ASSERT_EQ(set2.capacity(), cap_before);  // no density reallocation
@@ -507,7 +507,7 @@ TEST(DenseSet, Rehash) {
     ASSERT_EQ(set2.bucket_count() & (set2.bucket_count() - 1), 0u);
 
     // Usable after shrink.
-    bool res42 = set2.emplace(42);
+    bool res42 = set2.emplace_back(42);
     ASSERT_EQ(res42, true);
     ASSERT_TRUE(set2.contains(42));
 
@@ -518,7 +518,7 @@ TEST(DenseSet, Rehash) {
 
     for (int i = 0; i < 50; ++i) {
         ASSERT_FALSE(collision_set.contains(i));
-        bool res = collision_set.emplace(i);
+        bool res = collision_set.emplace_back(i);
 	ASSERT_EQ(res, true);
         ASSERT_TRUE(collision_set.contains(i));
     }
@@ -539,11 +539,11 @@ TEST(DenseSet, Rehash) {
     }
 
     // Re-insert erased keys.
-    bool res0 = collision_set.emplace(0);
+    bool res0 = collision_set.emplace_back(0);
     ASSERT_EQ(res0, true);
-    bool res25 = collision_set.emplace(25);
+    bool res25 = collision_set.emplace_back(25);
     ASSERT_EQ(res25, true);
-    bool res49 = collision_set.emplace(49);
+    bool res49 = collision_set.emplace_back(49);
     ASSERT_EQ(res49, true);
     ASSERT_EQ(collision_set.size(), 50);
     ASSERT_TRUE(collision_set.contains(0));
@@ -559,17 +559,17 @@ TEST(DenseSet, Swap) {
 
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.index(13), dense_set_type::null_key_index);
-    bool res13 = set.emplace(13);
+    bool res13 = set.emplace_back(13);
     ASSERT_EQ(res13, true);
 
     ASSERT_FALSE(set.contains(42));
     ASSERT_EQ(set.index(42), dense_set_type::null_key_index);
-    bool res42 = set.emplace(42);
+    bool res42 = set.emplace_back(42);
     ASSERT_EQ(res42, true);
 
     ASSERT_FALSE(set.contains(100));
     ASSERT_EQ(set.index(100), dense_set_type::null_key_index);
-    bool res100 = set.emplace(100);
+    bool res100 = set.emplace_back(100);
     ASSERT_EQ(res100, true);
 
     ASSERT_EQ(set.size(), 3);
@@ -617,7 +617,7 @@ TEST(DenseSet, Swap) {
 
     // Insert enough elements to force chain collisions.
     for (int i = 0; i < 20; ++i) {
-        bool res = cset.emplace(i);
+        bool res = cset.emplace_back(i);
 	ASSERT_EQ(res, true);
     }
 

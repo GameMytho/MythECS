@@ -84,12 +84,13 @@ namespace myth::core::container {
          * to its position in the density vector.
          * 
          * @param value The value to be inserted into the density vector.
+         * 
          * @return The index of the inserted value in the density vector.
          * 
          * @warning before calling this function, make sure the value does not exist in the sparse set by calling contains() function,
          * otherwise the behavior is undefined.
          */
-        size_type emplace(value_type value) {
+        size_type emplace_back(value_type value) {
             const value_index_type value_index = _density.size();
 
             _density.push_back(value);
@@ -142,6 +143,7 @@ namespace myth::core::container {
          * @brief Returns the index of a value in the sparse set.
          * 
          * @param value The value to search for.
+         * 
          * @return The index of the value in the density vector.
          * 
          * @warning Before calling this function, ensure that the value exists in the sparse set by using the contains() function,
@@ -155,6 +157,7 @@ namespace myth::core::container {
          * @brief Returns the index of a value in the sparse set.
          *
          * @param value The value to search for.
+         * 
          * @return The index of the value in the density vector, or null_value_index if not found.
          */
         [[nodiscard]] value_index_type safe_index(value_type value) const noexcept {
@@ -170,6 +173,7 @@ namespace myth::core::container {
          * @brief Checks if a value exists in the sparse set.
          *
          * @param value The value to check for existence.
+         * 
          * @return true if the value exists in the sparse set, false otherwise.
          */
         [[nodiscard]] bool contains(value_type value) const noexcept {
@@ -228,6 +232,7 @@ namespace myth::core::container {
          * @brief Calculates the page index for a given value.
          *
          * @param value The value for which to calculate the page index.
+         * 
          * @return The page index of the value.
          */
         size_type page(value_type value) const noexcept {
@@ -238,6 +243,7 @@ namespace myth::core::container {
          * @brief Calculates the offset within a page for a given value.
          *
          * @param value The value for which to calculate the offset.
+         * 
          * @return The offset of the value within its page.
          */
         size_type offset(value_type value) const noexcept {
@@ -248,6 +254,7 @@ namespace myth::core::container {
          * @brief Expands the sparsity vector to accommodate a new index if capacity is insufficient, otherwise returns the existing page.
          *
          * @param index The page index to expand to.
+         * 
          * @return A reference to the page in the sparsity vector corresponding to the given index.
          */
         page_type& expand(size_type index) {

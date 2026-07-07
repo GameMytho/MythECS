@@ -30,7 +30,7 @@ namespace myth::core::container {
         /** @brief The type used to represent the size of the container. */
         using size_type = size_t;
         /** @brief The type used to store type information. */
-        using info_type = type_info;
+        using info_type = ::myth::core::type_info;
 
         /**
          * @brief Constructs an empty any_vector with the specified type information.
@@ -126,7 +126,7 @@ namespace myth::core::container {
          * @param lh The index of the first element to swap.
          * @param rh The index of the second element to swap.
          */
-        void swap(size_type lh, size_type rh) noexcept {
+        void swap(size_type lh, size_type rh) {
             _info._swapper(_buffer + lh * _info._size, _buffer + rh * _info._size);
         }
 

@@ -137,6 +137,8 @@ namespace myth::core {
          * calls return the same cached record.
          *
          * @tparam T The type for which to retrieve the type_info record.
+         * 
+         * @return A const reference to the cached type_info record for T.
          */
         template<typename T>
         inline static const info_type& info() noexcept {
@@ -158,6 +160,8 @@ namespace myth::core {
          * a component-pool array index.
          *
          * @tparam T The type for which to retrieve the identifier.
+         * 
+         * @return A unique sequential identifier for the type T, assigned on first invocation.
          */
         template<typename T>
         inline static id_type id() noexcept {

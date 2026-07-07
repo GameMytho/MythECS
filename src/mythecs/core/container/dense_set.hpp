@@ -164,16 +164,17 @@ namespace myth::core::container {
          * @brief Inserts a key into the set and returns true if success, otherwise returns false.
          *
          * If the key already exists, it is not inserted again and return false. If the sparsity array 
-	 * is empty (i.e. the set is in a moved-from state), `rehash(0u)` is called first to initialize
-	 * the bucket array. Hashes the key to locate its bucket, walks the bucket's chain to check for
+         * is empty (i.e. the set is in a moved-from state), `rehash(0u)` is called first to initialize
+         * the bucket array. Hashes the key to locate its bucket, walks the bucket's chain to check for
          * duplicates, appends a new node to the density array (with the current bucket head as its next
-	 * link), sets the bucket head to the new node, and triggers a rehash if the load factor exceeds
-	 * `_threshold`, then returns true.
+         * link), sets the bucket head to the new node, and triggers a rehash if the load factor exceeds
+         * `_threshold`, then returns true.
          *
          * @param key The key to insert.
+         * 
          * @return True if success, otherwise false.
          */
-        [[nodiscard]] bool emplace(const key_type& key) {
+        [[nodiscard]] bool emplace_back(const key_type& key) {
             [[unlikely]] if (_sparsity.first().empty()) {
                 rehash(0u);
             }
@@ -201,7 +202,7 @@ namespace myth::core::container {
          *
          * @param key The key to remove.
          */
-        void erase(const key_type& key) noexcept {
+        void erase(const key_type& key) noexcept(std::is_nothrow_move_assignable_v<node_type>) {
             [[unlikely]] if (empty()) {
                 return;
             }
@@ -230,7 +231,7 @@ namespace myth::core::container {
          *
          * @warning The behavior is undefined if `lh` or `rh` is out of range.
          */
-        void swap(size_type lh, size_type rh) {
+        void swap(size_type lh, size_type rh) noexcept(std::is_nothrow_swappable_v<node_type>) {
             const key_type& lk = _density.first()[lh].second;
             const key_type& rk = _density.first()[rh].second;
 
@@ -253,6 +254,7 @@ namespace myth::core::container {
          * walks the bucket chain to locate a matching node.
          *
          * @param key The key to search for.
+         * 
          * @return The density index of the key, or `null_key_index` if not found.
          */
         [[nodiscard]] size_type index(const key_type& key) const noexcept {
@@ -270,6 +272,7 @@ namespace myth::core::container {
          * walks the bucket chain to locate a matching node.
          *
          * @param key The key to check for existence.
+         * 
          * @return `true` if the key exists in the set, `false` otherwise.
          */
         [[nodiscard]] bool contains(const key_type& key) const noexcept {
@@ -331,7 +334,7 @@ namespace myth::core::container {
          * @warning `value` must be greater than zero; a non-positive value results in
          *          undefined behavior due to division by zero in internal calculations.
          */
-        void max_load_factor(const float value) noexcept {
+        void max_load_factor(const float value) {
             _threshold = value;
             rehash(0u);
         }
@@ -388,7 +391,7 @@ namespace myth::core::container {
          *
          * @param index The density index of the element to remove.
          */
-        void move_and_pop(size_type index) noexcept {
+        void move_and_pop(size_type index) noexcept(std::is_nothrow_move_assignable_v<node_type>) {
             if (size_type last_idx = size() - 1; index != last_idx) {
                 size_type* cur = &_sparsity.first()[key_to_bucket(_density.first().back().second)];
                 _density.first()[index] = std::move(_density.first().back());
@@ -432,6 +435,7 @@ namespace myth::core::container {
          * Hashes the key and reduces the result modulo the current bucket count.
          *
          * @param key The key to hash.
+         * 
          * @return The bucket index (in `[0, bucket_count)`).
          * 
          * @note The bucket count is always a power of two (guaranteed by `std::bit_ceil` in `rehash`),
@@ -449,6 +453,7 @@ namespace myth::core::container {
          *
          * @param key    The key to search for.
          * @param bucket The bucket index (pre-computed from `key_to_bucket()`).
+         * 
          * @return The density index of the key, or `null_key_index` if not found.
          */
         [[nodiscard]] size_type find_index(const key_type& key, size_type bucket) const noexcept {

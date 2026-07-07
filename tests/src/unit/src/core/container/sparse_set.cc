@@ -19,7 +19,7 @@ TEST(SparseSet, Functionalities) {
     // Missing value: contains() is false, safe_index() returns sentinel.
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    set.emplace(13);
+    set.emplace_back(13);
 
     // After emplace, non-empty with allocated capacity.
     ASSERT_FALSE(set.empty());
@@ -56,7 +56,7 @@ TEST(SparseSet, Constructors) {
 
     ASSERT_FALSE(set1.contains(13));
     ASSERT_EQ(set1.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(13);
+    set1.emplace_back(13);
 
     // Copy-then-move construction chain.
     sparse_set<uint32_t> tmp { set1 };
@@ -83,7 +83,7 @@ TEST(SparseSet, Copy) {
 
     ASSERT_FALSE(set1.contains(13));
     ASSERT_EQ(set1.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(13);
+    set1.emplace_back(13);
 
     // Copy ctor - set2 is an independent copy.
     sparse_set<uint32_t> set2 { set1 };
@@ -103,15 +103,15 @@ TEST(SparseSet, Copy) {
     // Mutate independently - adding to one does not affect the other.
     ASSERT_FALSE(set1.contains(42));
     ASSERT_EQ(set1.safe_index(42), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(42);
+    set1.emplace_back(42);
 
     ASSERT_FALSE(set1.contains(100));
     ASSERT_EQ(set1.safe_index(100), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(100);
+    set1.emplace_back(100);
 
     ASSERT_FALSE(set2.contains(0));
     ASSERT_EQ(set1.safe_index(0), sparse_set<uint32_t>::null_value_index);
-    set2.emplace(0);
+    set2.emplace_back(0);
 
     // Copy assignment - set2 replaced by set1's contents.
     set2 = set1;
@@ -149,7 +149,7 @@ TEST(SparseSet, Move) {
 
     ASSERT_FALSE(set1.contains(13));
     ASSERT_EQ(set1.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(13);
+    set1.emplace_back(13);
 
     // Move ctor - set1 resources transfer to set2.
     sparse_set<uint32_t> set2 { std::move(set1) };
@@ -167,15 +167,15 @@ TEST(SparseSet, Move) {
     // Moved-from set can be reused after populating again.
     ASSERT_FALSE(set1.contains(42));
     ASSERT_EQ(set1.safe_index(42), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(42);
+    set1.emplace_back(42);
 
     ASSERT_FALSE(set1.contains(100));
     ASSERT_EQ(set1.safe_index(100), sparse_set<uint32_t>::null_value_index);
-    set1.emplace(100);
+    set1.emplace_back(100);
 
     ASSERT_FALSE(set2.contains(0));
     ASSERT_EQ(set2.safe_index(0), sparse_set<uint32_t>::null_value_index);
-    set2.emplace(0);
+    set2.emplace_back(0);
 
     // Move assignment - set1 resources transfer to set2.
     set2 = std::move(set1);
@@ -201,7 +201,7 @@ TEST(SparseSet, Emplace) {
 
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    auto index = set.emplace(13);
+    auto index = set.emplace_back(13);
 
     ASSERT_EQ(set.size(), 1);
     ASSERT_TRUE(set.contains(13));
@@ -211,7 +211,7 @@ TEST(SparseSet, Emplace) {
 
     ASSERT_FALSE(set.contains(42));
     ASSERT_EQ(set.safe_index(42), sparse_set<uint32_t>::null_value_index);
-    index = set.emplace(42);
+    index = set.emplace_back(42);
 
     ASSERT_EQ(set.size(), 2);
     ASSERT_TRUE(set.contains(42));
@@ -221,7 +221,7 @@ TEST(SparseSet, Emplace) {
 
     ASSERT_FALSE(set.contains(100));
     ASSERT_EQ(set.safe_index(100), sparse_set<uint32_t>::null_value_index);
-    index = set.emplace(100);
+    index = set.emplace_back(100);
 
     ASSERT_TRUE(set.contains(100));
     ASSERT_EQ(set.size(), 3);
@@ -231,7 +231,7 @@ TEST(SparseSet, Emplace) {
 
     ASSERT_FALSE(set.contains(0));
     ASSERT_EQ(set.safe_index(0), sparse_set<uint32_t>::null_value_index);
-    index = set.emplace(0);
+    index = set.emplace_back(0);
 
     ASSERT_EQ(set.size(), 4);
     ASSERT_TRUE(set.contains(0));
@@ -248,19 +248,19 @@ TEST(SparseSet, Erase) {
 
     ASSERT_FALSE(set.contains(13));
     ASSERT_EQ(set.safe_index(13), sparse_set<uint32_t>::null_value_index);
-    set.emplace(13);
+    set.emplace_back(13);
 
     ASSERT_FALSE(set.contains(42));
     ASSERT_EQ(set.safe_index(42), sparse_set<uint32_t>::null_value_index);
-    set.emplace(42);
+    set.emplace_back(42);
 
     ASSERT_FALSE(set.contains(100));
     ASSERT_EQ(set.safe_index(100), sparse_set<uint32_t>::null_value_index);
-    set.emplace(100);
+    set.emplace_back(100);
 
     ASSERT_FALSE(set.contains(0));
     ASSERT_EQ(set.safe_index(0), sparse_set<uint32_t>::null_value_index);
-    set.emplace(0);
+    set.emplace_back(0);
 
     ASSERT_EQ(set.size(), 4);
     ASSERT_EQ(set.index(13), 0);
@@ -320,9 +320,9 @@ TEST(SparseSet, Swap) {
     ASSERT_EQ(set.safe_index(42), sparse_set<uint32_t>::null_value_index);
     ASSERT_EQ(set.safe_index(100), sparse_set<uint32_t>::null_value_index);
 
-    set.emplace(13);
-    set.emplace(42);
-    set.emplace(100);
+    set.emplace_back(13);
+    set.emplace_back(42);
+    set.emplace_back(100);
 
     ASSERT_EQ(set.size(), 3);
     ASSERT_EQ(set[0], 13);

@@ -26,7 +26,7 @@ TEST(EntitySet, Functionalities) {
     ASSERT_FALSE(set.occupied(entity1.id()));
     ASSERT_FALSE(set.contains(entity1));
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
-    set.emplace(entity1);
+    set.emplace_back(entity1);
 
     // After emplace: non-empty, allocated, reachable via all accessors.
     ASSERT_FALSE(set.empty());
@@ -66,7 +66,7 @@ TEST(EntitySet, Constructors) {
 
     ASSERT_FALSE(set1.contains(entity1));
     ASSERT_EQ(set1.checked_index(entity1), (entity_set<entity_type>::null_entity_index));
-    set1.emplace(entity1);
+    set1.emplace_back(entity1);
 
     // Copy-then-move construction chain.
     entity_set<entity_type> tmp { set1 };
@@ -96,7 +96,7 @@ TEST(EntitySet, Copy) {
     entity_type entity1 { 42, 5 };
 
     ASSERT_FALSE(set1.contains(entity1));
-    set1.emplace(entity1);
+    set1.emplace_back(entity1);
 
     // Copy ctor - set2 is independent.
     entity_set<entity_type> set2 { set1 };
@@ -111,13 +111,13 @@ TEST(EntitySet, Copy) {
 
     // Mutate independently.
     ASSERT_FALSE(set1.contains(entity_type { 100, 5 }));
-    set1.emplace(entity_type { 100, 5 });
+    set1.emplace_back(entity_type { 100, 5 });
 
     ASSERT_FALSE(set1.contains(entity_type { 200, 5 }));
-    set1.emplace(entity_type { 200, 5 });
+    set1.emplace_back(entity_type { 200, 5 });
 
     ASSERT_FALSE(set2.contains(entity_type { 300, 5 }));
-    set2.emplace(entity_type { 300, 5 });
+    set2.emplace_back(entity_type { 300, 5 });
 
     // Copy assignment - set2 replaced by set1's contents.
     set2 = set1;
@@ -150,7 +150,7 @@ TEST(EntitySet, Move) {
     entity_type entity1 { 42, 5 };
 
     ASSERT_FALSE(set1.contains(entity1));
-    set1.emplace(entity1);
+    set1.emplace_back(entity1);
 
     // Move ctor.
     entity_set<entity_type> set2 { std::move(set1) };
@@ -164,13 +164,13 @@ TEST(EntitySet, Move) {
 
     // Moved-from set can be reused.
     ASSERT_FALSE(set1.contains(entity_type { 100, 5 }));
-    set1.emplace(entity_type { 100, 5 });
+    set1.emplace_back(entity_type { 100, 5 });
 
     ASSERT_FALSE(set1.contains(entity_type { 200, 5 }));
-    set1.emplace(entity_type { 200, 5 });
+    set1.emplace_back(entity_type { 200, 5 });
 
     ASSERT_FALSE(set2.contains(entity_type { 300, 5 }));
-    set2.emplace(entity_type { 300, 5 });
+    set2.emplace_back(entity_type { 300, 5 });
 
     // Move assignment.
     set2 = std::move(set1);
@@ -200,7 +200,7 @@ TEST(EntitySet, Emplace) {
     ASSERT_FALSE(set.occupied(entity1.id()));
     ASSERT_FALSE(set.contains(entity1));
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
-    size_t index1 = set.emplace(entity1);
+    size_t index1 = set.emplace_back(entity1);
 
     ASSERT_EQ(set.size(), 1);
     ASSERT_TRUE(set.occupied(entity1.id()));
@@ -224,7 +224,7 @@ TEST(EntitySet, Emplace) {
     ASSERT_FALSE(set.occupied(entity2.id()));
     ASSERT_FALSE(set.contains(entity2));
     ASSERT_EQ(set.checked_index(entity2), entity_set<entity_type>::null_entity_index);
-    size_t index2 = set.emplace(entity2);
+    size_t index2 = set.emplace_back(entity2);
 
     ASSERT_EQ(set.size(), 2);
     ASSERT_TRUE(set.occupied(entity2.id()));
@@ -238,7 +238,7 @@ TEST(EntitySet, Emplace) {
     ASSERT_FALSE(set.occupied(entity3.id()));
     ASSERT_FALSE(set.contains(entity3));
     ASSERT_EQ(set.checked_index(entity3), entity_set<entity_type>::null_entity_index);
-    size_t index3 = set.emplace(entity3);
+    size_t index3 = set.emplace_back(entity3);
 
     ASSERT_EQ(set.size(), 3);
     ASSERT_TRUE(set.occupied(entity3.id()));
@@ -252,7 +252,7 @@ TEST(EntitySet, Emplace) {
     ASSERT_FALSE(set.occupied(entity4.id()));
     ASSERT_FALSE(set.contains(entity4));
     ASSERT_EQ(set.checked_index(entity4), entity_set<entity_type>::null_entity_index);
-    size_t index4 = set.emplace(entity4);
+    size_t index4 = set.emplace_back(entity4);
 
     ASSERT_EQ(set.size(), 4);
     ASSERT_TRUE(set.occupied(entity4.id()));
@@ -278,22 +278,22 @@ TEST(EntitySet, Erase) {
     ASSERT_FALSE(set.occupied(entity1.id()));
     ASSERT_FALSE(set.contains(entity1));
     ASSERT_EQ(set.checked_index(entity1), entity_set<entity_type>::null_entity_index);
-    set.emplace(entity1);
+    set.emplace_back(entity1);
 
     ASSERT_FALSE(set.occupied(entity2.id()));
     ASSERT_FALSE(set.contains(entity2));
     ASSERT_EQ(set.checked_index(entity2), entity_set<entity_type>::null_entity_index);
-    set.emplace(entity2);
+    set.emplace_back(entity2);
 
     ASSERT_FALSE(set.occupied(entity3.id()));
     ASSERT_FALSE(set.contains(entity3));
     ASSERT_EQ(set.checked_index(entity3), entity_set<entity_type>::null_entity_index);
-    set.emplace(entity3);
+    set.emplace_back(entity3);
 
     ASSERT_FALSE(set.occupied(entity4.id()));
     ASSERT_FALSE(set.contains(entity4));
     ASSERT_EQ(set.checked_index(entity4), entity_set<entity_type>::null_entity_index);
-    set.emplace(entity4);
+    set.emplace_back(entity4);
 
     ASSERT_EQ(set.size(), 4);
     ASSERT_TRUE(set.occupied(entity1.id()));
@@ -386,7 +386,7 @@ TEST(EntitySet, Erase) {
     ASSERT_FALSE(set.contains(e1_new));
     ASSERT_EQ(set.checked_index(e1_new), entity_set<entity_type>::null_entity_index);
 
-    set.emplace(e1_new);
+    set.emplace_back(e1_new);
 
     ASSERT_EQ(set.size(), 1);
     ASSERT_TRUE(set.occupied(e1_new.id()));

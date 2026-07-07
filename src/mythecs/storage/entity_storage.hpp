@@ -111,7 +111,7 @@ namespace myth::storage {
             entity_type e(size);
 
             if (e.valid()) {
-                _entities.emplace(e);
+                _entities.emplace_back(e);
                 ++_count;
             }
 
@@ -189,6 +189,7 @@ namespace myth::storage {
          * @brief Gets the index of an entity in the storage.
          *
          * @param entt The entity to find.
+         * 
          * @return The index of the entity if found.
          * 
          * @warning Before calling this function, ensure that the entity exists in the storage by using the
@@ -202,6 +203,7 @@ namespace myth::storage {
          * @brief Gets the index of an entity in the storage.
          *
          * @param entt The entity to find.
+         * 
          * @return The index of the entity, or null_entity_index if not found.
          */
         [[nodiscard]] entity_index_type checked_index(const entity_type& entt) const noexcept {
@@ -217,6 +219,7 @@ namespace myth::storage {
          * @brief Checks if an entity is contained in the storage (spawned but may not have a value).
          *
          * @param entt The entity to check.
+         * 
          * @return True if the entity is spawned, false otherwise.
          */
         [[nodiscard]] bool contains(const entity_type& entt) const noexcept {
@@ -228,6 +231,7 @@ namespace myth::storage {
          * @brief Checks if an entity is alive (has an associated value).
          *
          * @param entt The entity to check.
+         * 
          * @return True if the entity has an associated value, false otherwise.
          */
         [[nodiscard]] bool alive(const entity_type& entt) const noexcept {
