@@ -84,3 +84,12 @@ add_unit_test(
     gtest_main
     TARGET_NAME MythECS_DenseSetTest
 )
+
+add_unit_test(
+    "src/unit/src/include"
+    "src/unit/src/storage/archtype.cc"
+    archtype
+    "MythECS;gtest"
+    gtest_main
+    TARGET_NAME MythECS_ArchtypeTest
+)
