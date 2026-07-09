@@ -15,8 +15,10 @@ TEST(TypeInfo, Construction) {
         std::swap(*static_cast<int*>(a), *static_cast<int*>(b));
     };
 
-    ::myth::core::type_info info(sizeof(int), alignof(int), constructor, destructor, swapper);
+    // The empty flag is derived from the described type rather than hardcoded.
+    ::myth::core::type_info info(std::is_empty_v<int>, sizeof(int), alignof(int), constructor, destructor, swapper);
 
+    ASSERT_EQ(info._empty, std::is_empty_v<int>);
     ASSERT_EQ(info._size, sizeof(int));
     ASSERT_EQ(info._align, alignof(int));
     ASSERT_EQ(info._constructor, constructor);
@@ -38,10 +40,11 @@ TEST(TypeInfo, Copy) {
         std::swap(*static_cast<int*>(a), *static_cast<int*>(b));
     };
 
-    ::myth::core::type_info info1(sizeof(int), alignof(int), constructor, destructor, swapper);
+    ::myth::core::type_info info1(std::is_empty_v<int>, sizeof(int), alignof(int), constructor, destructor, swapper);
     ::myth::core::type_info info2 { info1 };
 
     // Source unchanged after copy ctor.
+    ASSERT_EQ(info1._empty, std::is_empty_v<int>);
     ASSERT_EQ(info1._size, sizeof(int));
     ASSERT_EQ(info1._align, alignof(int));
     ASSERT_EQ(info1._constructor, constructor);
@@ -49,6 +52,7 @@ TEST(TypeInfo, Copy) {
     ASSERT_EQ(info1._swapper, swapper);
 
     // Copy matches source.
+    ASSERT_EQ(info2._empty, std::is_empty_v<int>);
     ASSERT_EQ(info2._size, sizeof(int));
     ASSERT_EQ(info2._align, alignof(int));
     ASSERT_EQ(info2._constructor, constructor);
@@ -58,6 +62,7 @@ TEST(TypeInfo, Copy) {
     // Copy assignment.
     ::myth::core::type_info info3 = info1;
 
+    ASSERT_EQ(info3._empty, std::is_empty_v<int>);
     ASSERT_EQ(info3._size, sizeof(int));
     ASSERT_EQ(info3._align, alignof(int));
     ASSERT_EQ(info3._constructor, constructor);
@@ -80,16 +85,18 @@ TEST(TypeInfo, Move) {
         std::swap(*static_cast<int*>(a), *static_cast<int*>(b));
     };
 
-    ::myth::core::type_info info1(sizeof(int), alignof(int), constructor, destructor, swapper);
+    ::myth::core::type_info info1(std::is_empty_v<int>, sizeof(int), alignof(int), constructor, destructor, swapper);
     ::myth::core::type_info info2 { std::move(info1) };
 
     // type_info holds plain function pointers - move is just a copy.
+    ASSERT_EQ(info1._empty, std::is_empty_v<int>);
     ASSERT_EQ(info1._size, sizeof(int));
     ASSERT_EQ(info1._align, alignof(int));
     ASSERT_EQ(info1._constructor, constructor);
     ASSERT_EQ(info1._destructor, destructor);
     ASSERT_EQ(info1._swapper, swapper);
 
+    ASSERT_EQ(info2._empty, std::is_empty_v<int>);
     ASSERT_EQ(info2._size, sizeof(int));
     ASSERT_EQ(info2._align, alignof(int));
     ASSERT_EQ(info2._constructor, constructor);
@@ -99,6 +106,7 @@ TEST(TypeInfo, Move) {
     // Move assignment.
     ::myth::core::type_info info3 = std::move(info2);
 
+    ASSERT_EQ(info3._empty, std::is_empty_v<int>);
     ASSERT_EQ(info3._size, sizeof(int));
     ASSERT_EQ(info3._align, alignof(int));
     ASSERT_EQ(info3._constructor, constructor);
@@ -110,8 +118,9 @@ TEST(TypeInfo, Move) {
 // Constexpr - construction, copy, and move all work at compile time
 // ============================================================================
 TEST(TypeInfo, Constexpr) {
-    constexpr ::myth::core::type_info info(sizeof(int), alignof(int), nullptr, nullptr, nullptr);
+    constexpr ::myth::core::type_info info(std::is_empty_v<int>, sizeof(int), alignof(int), nullptr, nullptr, nullptr);
 
+    static_assert(info._empty == std::is_empty_v<int>);
     static_assert(info._size == sizeof(int));
     static_assert(info._align == alignof(int));
     static_assert(info._constructor == nullptr);
@@ -121,6 +130,7 @@ TEST(TypeInfo, Constexpr) {
     // Constexpr copy ctor.
     constexpr ::myth::core::type_info info2 { info };
 
+    static_assert(info2._empty == std::is_empty_v<int>);
     static_assert(info2._size == sizeof(int));
     static_assert(info2._align == alignof(int));
     static_assert(info2._constructor == nullptr);
@@ -130,6 +140,7 @@ TEST(TypeInfo, Constexpr) {
     // Constexpr copy assignment.
     constexpr ::myth::core::type_info info3 = info;
 
+    static_assert(info3._empty == std::is_empty_v<int>);
     static_assert(info3._size == sizeof(int));
     static_assert(info3._align == alignof(int));
     static_assert(info3._constructor == nullptr);
@@ -139,6 +150,7 @@ TEST(TypeInfo, Constexpr) {
     // Constexpr move ctor (move = copy for trivially-copyable type_info).
     constexpr ::myth::core::type_info info4 { std::move(info) };
 
+    static_assert(info4._empty == std::is_empty_v<int>);
     static_assert(info4._size == sizeof(int));
     static_assert(info4._align == alignof(int));
     static_assert(info4._constructor == nullptr);
@@ -148,6 +160,7 @@ TEST(TypeInfo, Constexpr) {
     // Constexpr move assignment.
     constexpr ::myth::core::type_info info5 = std::move(info2);
 
+    static_assert(info5._empty == std::is_empty_v<int>);
     static_assert(info5._size == sizeof(int));
     static_assert(info5._align == alignof(int));
     static_assert(info5._constructor == nullptr);
@@ -164,6 +177,7 @@ TEST(TypeInfoGenerator, InfoForTrivialType) {
 
     auto info = ::myth::core::type_info_generator::info<int>();
 
+    ASSERT_FALSE(info._empty);   // int is not an empty type
     ASSERT_EQ(info._size, sizeof(int));
     ASSERT_EQ(info._align, alignof(int));
 
@@ -188,6 +202,21 @@ TEST(TypeInfoGenerator, InfoForTrivialType) {
     operator delete(dest1, std::align_val_t(alignof(int)));
     info._destructor(dest2);
     operator delete(dest2, std::align_val_t(alignof(int)));
+}
+
+// ============================================================================
+// info<T>() empty flag - records whether T is an empty type (e.g. a tag)
+// ============================================================================
+TEST(TypeInfoGenerator, InfoEmptyFlag) {
+    struct EmptyTag {};
+    struct NonEmpty { int value; };
+
+    ASSERT_TRUE(std::is_empty_v<EmptyTag>);
+    ASSERT_FALSE(std::is_empty_v<NonEmpty>);
+
+    // An empty type is flagged as such; a type carrying data is not.
+    ASSERT_TRUE(::myth::core::type_info_generator::info<EmptyTag>()._empty);
+    ASSERT_FALSE(::myth::core::type_info_generator::info<NonEmpty>()._empty);
 }
 
 // ============================================================================

@@ -9,8 +9,8 @@
 
 namespace myth::core {
     /**
-     * @brief A structure that holds type information for a type, including its size, alignment, and functions for construction,
-     * destruction, and swapping.
+     * @brief A structure that holds type information for a type, including whether it is empty, its size and alignment,
+     * and functions for construction, destruction, and swapping.
      */
     struct type_info final {
         /** @brief The type used for representing sizes and alignments. */
@@ -22,6 +22,7 @@ namespace myth::core {
         /** @brief The type used for representing the swapper function pointer. */
         using swapper_type = void(*)(void*, void*);
 
+        bool _empty;
         size_type _size;
         size_type _align;
         constructor_type _constructor;
@@ -29,9 +30,10 @@ namespace myth::core {
         swapper_type _swapper;
 
         /**
-         * @brief Constructs a type_info structure with the specified size, alignment, and function pointers for construction,
-         * destruction, and swapping.
-         * 
+         * @brief Constructs a type_info structure with the specified emptiness flag, size, alignment, and function pointers
+         * for construction, destruction, and swapping.
+         *
+         * @param empty Whether the type is empty (carries no data), such as a tag component.
          * @param size The size of the type in bytes.
          * @param align The alignment of the type in bytes.
          * @param constructor A pointer to a function that can construct an object of the type in place, given a destination pointer
@@ -39,8 +41,8 @@ namespace myth::core {
          * @param destructor A pointer to a function that can destruct an object of the type in place, given a pointer to the object.
          * @param swapper A pointer to a function that can swap two objects of the type in place, given pointers to the two objects.
          */
-        constexpr type_info(size_type size, size_type align, constructor_type constructor, destructor_type destructor, swapper_type swapper) noexcept
-            : _size(size), _align(align), _constructor(constructor), _destructor(destructor), _swapper(swapper) {}
+        constexpr type_info(bool empty, size_type size, size_type align, constructor_type constructor, destructor_type destructor, swapper_type swapper) noexcept
+            : _empty(empty), _size(size), _align(align), _constructor(constructor), _destructor(destructor), _swapper(swapper) {}
 
         /** @brief Constructs a type_info object by copying another one. */
         constexpr type_info(const type_info&) = default;
@@ -118,8 +120,8 @@ namespace myth::core {
     /**
      * @brief A utility class that provides cached type information and unique sequential identifiers for types.
      *
-     * `info<T>()` returns a const reference to a statically cached `type_info` record containing the size,
-     * alignment, and lifecycle function pointers for `T`. `id<T>()` returns a dense sequential `uint32_t`
+     * `info<T>()` returns a const reference to a statically cached `type_info` record containing the emptiness
+     * flag, size, alignment, and lifecycle function pointers for `T`. `id<T>()` returns a dense sequential `uint32_t`
      * identifier assigned on first invocation - suitable for use as an array index in component pools.
      */
     class type_info_generator final {
@@ -132,8 +134,8 @@ namespace myth::core {
         /**
          * @brief Returns a const reference to a statically cached type_info record for T.
          *
-         * On first invocation, constructs and caches a type_info with the size, alignment, and
-         * lifecycle function pointers (constructor / destructor / swapper) for T. Subsequent
+         * On first invocation, constructs and caches a type_info with the emptiness flag, size, alignment,
+         * and lifecycle function pointers (constructor / destructor / swapper) for T. Subsequent
          * calls return the same cached record.
          *
          * @tparam T The type for which to retrieve the type_info record.
@@ -143,6 +145,7 @@ namespace myth::core {
         template<typename T>
         inline static const info_type& info() noexcept {
             static info_type record(
+                std::is_empty_v<T>,
                 sizeof(T), alignof(T),
                 &internal::constructor_impl<T>,
                 &internal::destructor_impl<T>,
