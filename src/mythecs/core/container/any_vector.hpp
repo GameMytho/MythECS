@@ -203,6 +203,9 @@ namespace myth::core::container {
             return static_cast<void*>(_buffer + index * _info._size);
         }
 
+        /** @brief Returns the type information describing the element type stored in the container. */
+        [[nodiscard]] const info_type& info() const noexcept { return _info; }
+
     private:
         buffer_type _buffer;
         size_type _size;

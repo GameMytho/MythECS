@@ -21,6 +21,14 @@ TEST(AnyVector, Functionalities) {
     ASSERT_EQ(vec.size(), 0);
     ASSERT_EQ(vec.capacity(), 0);
 
+    // info() exposes the exact cached type_info the container was built from - same
+    // address, not a copy - so a fresh pool can be spun up from an existing one via
+    // `any_vector(other.info())`.
+    ASSERT_EQ(&vec.info(), &myth::core::type_info_generator::info<TestType>());
+    ASSERT_EQ(vec.info()._size, sizeof(TestType));
+    ASSERT_EQ(vec.info()._align, alignof(TestType));
+    ASSERT_FALSE(vec.info()._empty);   // TestType carries data
+
     TestType t1 { 1, 1.0f, "one" };
 
     vec.emplace_back(&t1);
