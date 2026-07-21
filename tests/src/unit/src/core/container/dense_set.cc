@@ -237,13 +237,15 @@ TEST(DenseSet, Move) {
 
     ASSERT_FALSE(set3.contains(13));
     bool res13_new = set3.emplace_back(13);
-    ASSERT_EQ(res13, true);
+    ASSERT_EQ(res13_new, true);
     ASSERT_FALSE(set3.contains(42));
     bool res42_new = set3.emplace_back(42);
-    ASSERT_EQ(res42, true);
+    ASSERT_EQ(res42_new, true);
 
     dense_set_type set4{ std::move(set3), std::allocator<int>{} };
 
+    ASSERT_TRUE(set3.empty());
+    ASSERT_EQ(set3.hash_id(), 0u);
     ASSERT_EQ(set4.size(), 2);
     ASSERT_TRUE(set4.contains(13));
     ASSERT_TRUE(set4.contains(42));
@@ -639,4 +641,150 @@ TEST(DenseSet, Swap) {
     for (int i = 0; i < 20; ++i) {
         ASSERT_TRUE(cset.contains(i)) << "i = " << i;
     }
+}
+
+// ============================================================================
+// HashId - XOR-accumulated hash of all keys
+// ============================================================================
+TEST(DenseSet, HashId) {
+    using hasher_t = std::hash<int>;
+    hasher_t hasher{};
+
+    const size_t initial = dense_set_type::initial_hash_id;
+
+    // Default-constructed set has the initial hash_id.
+    dense_set_type set;
+    size_t expected = initial;
+    ASSERT_TRUE(set.empty());
+    ASSERT_EQ(set.hash_id(), initial);
+
+    // Emplace: hash_id = initial ^ hash(key).
+    ASSERT_TRUE(set.emplace_back(13));
+    expected ^= hasher(13);
+    ASSERT_EQ(set.hash_id(), expected);
+
+    // Duplicate emplace does not change hash_id.
+    ASSERT_FALSE(set.emplace_back(13));
+    ASSERT_EQ(set.hash_id(), expected);
+
+    // Insert another key: hash_id accumulates via XOR.
+    ASSERT_TRUE(set.emplace_back(42));
+    expected ^= hasher(42);
+    ASSERT_EQ(set.hash_id(), expected);
+
+    // Erase: the key's hash is XOR'd back out.
+    set.erase(13);
+    expected ^= hasher(13);
+    ASSERT_EQ(set.hash_id(), expected);
+
+    // Clear + re-insert the same single key recovers the same hash.
+    set.clear();
+    expected = initial;
+    ASSERT_TRUE(set.empty());
+    ASSERT_EQ(set.hash_id(), initial);
+
+    ASSERT_TRUE(set.emplace_back(42));
+    expected ^= hasher(42);
+    ASSERT_EQ(set.hash_id(), expected);
+
+    // Two sets with the same elements have the same hash_id,
+    // regardless of insertion order (XOR is commutative).
+    dense_set_type set1, set2;
+
+    size_t common = initial;
+    ASSERT_TRUE(set1.emplace_back(1));  common ^= hasher(1);
+    ASSERT_TRUE(set1.emplace_back(2));  common ^= hasher(2);
+    ASSERT_TRUE(set1.emplace_back(3));  common ^= hasher(3);
+
+    ASSERT_TRUE(set2.emplace_back(3));
+    ASSERT_TRUE(set2.emplace_back(1));
+    ASSERT_TRUE(set2.emplace_back(2));
+
+    ASSERT_EQ(set1.hash_id(), common);
+    ASSERT_EQ(set2.hash_id(), common);
+
+    // Clear resets hash_id to initial.
+    set1.clear();
+    ASSERT_TRUE(set1.empty());
+    ASSERT_EQ(set1.hash_id(), initial);
+
+    set2.clear();
+    ASSERT_TRUE(set2.empty());
+    ASSERT_EQ(set2.hash_id(), initial);
+
+    // Copy construction preserves hash_id.
+    ASSERT_TRUE(set1.emplace_back(7));  expected = initial ^ hasher(7);
+    ASSERT_TRUE(set1.emplace_back(14)); expected ^= hasher(14);
+
+    dense_set_type set3{set1};
+    ASSERT_EQ(set3.hash_id(), expected);
+
+    // Allocator-extended copy preserves hash_id.
+    dense_set_type set4{set1, std::allocator<int>{}};
+    ASSERT_EQ(set4.hash_id(), expected);
+
+    // Move construction: destination inherits hash_id, source resets to initial.
+    size_t saved = set1.hash_id();
+    dense_set_type set5{std::move(set1)};
+
+    ASSERT_EQ(set5.hash_id(), saved);
+    ASSERT_TRUE(set1.empty());
+    ASSERT_EQ(set1.hash_id(), initial);
+
+    // Allocator-extended move: same semantics.
+    saved = set5.hash_id();
+    dense_set_type set6{std::move(set5), std::allocator<int>{}};
+
+    ASSERT_EQ(set6.hash_id(), saved);
+    ASSERT_TRUE(set5.empty());
+    ASSERT_EQ(set5.hash_id(), initial);
+
+    // Move assignment: destination inherits hash_id, source resets to initial.
+    ASSERT_TRUE(set6.emplace_back(99));  // give set6 some content
+
+    dense_set_type set7;
+    ASSERT_TRUE(set7.emplace_back(1));  size_t hash7 = initial ^ hasher(1);
+    ASSERT_TRUE(set7.emplace_back(2));  hash7 ^= hasher(2);
+
+    set6 = std::move(set7);
+
+    ASSERT_EQ(set6.hash_id(), hash7);
+    ASSERT_TRUE(set7.empty());
+    ASSERT_EQ(set7.hash_id(), initial);
+
+    // Self move-assignment: hash_id is unchanged.
+    saved = set6.hash_id();
+    set6 = std::move(set6);
+    ASSERT_EQ(set6.hash_id(), saved);
+}
+
+// ============================================================================
+// StdHash - std::hash<dense_set> specialization delegates to hash_id()
+// ============================================================================
+TEST(DenseSet, StdHash) {
+    using set_hasher = std::hash<dense_set_type>;
+    set_hasher sh;
+
+    // Empty set hashes to the initial value.
+    dense_set_type empty_set;
+    ASSERT_TRUE(empty_set.empty());
+    ASSERT_EQ(sh(empty_set), dense_set_type::initial_hash_id);
+
+    // Non-empty set: std::hash result matches hash_id().
+    dense_set_type set;
+    ASSERT_TRUE(set.emplace_back(5));
+    ASSERT_TRUE(set.emplace_back(10));
+    ASSERT_EQ(sh(set), set.hash_id());
+
+    // Same membership, different insertion order -> same std::hash (XOR is commutative).
+    dense_set_type set1, set2;
+    ASSERT_TRUE(set1.emplace_back(10));
+    ASSERT_TRUE(set1.emplace_back(20));
+    ASSERT_TRUE(set1.emplace_back(30));
+    ASSERT_TRUE(set2.emplace_back(30));
+    ASSERT_TRUE(set2.emplace_back(10));
+    ASSERT_TRUE(set2.emplace_back(20));
+    ASSERT_EQ(sh(set1), set1.hash_id());
+    ASSERT_EQ(sh(set2), set2.hash_id());
+    ASSERT_EQ(sh(set1), sh(set2));
 }

@@ -66,13 +66,15 @@ namespace myth::core::container {
         inline static constexpr size_type minimum_bucket_count = 8u;
         /** @brief A sentinel value indicating an invalid/empty bucket entry. */
         inline static constexpr size_type null_key_index = std::numeric_limits<size_type>::max();
+        /** @brief The initial value for the XOR-accumulated hash (`_hash_id`). */
+        inline static constexpr size_type initial_hash_id = 0u;
 
         /**
          * @brief Constructs an empty dense set with the default threshold and minimum bucket count.
          *
          * Initializes `_threshold` to `default_threshold` and allocates `minimum_bucket_count` buckets.
          */
-        dense_set() : _threshold(default_threshold) {
+        dense_set() : _threshold(default_threshold), _hash_id(initial_hash_id) {
             rehash(0u);
         }
 
@@ -114,7 +116,7 @@ namespace myth::core::container {
          * @param allocator The allocator for internal containers.
          */
         dense_set(size_type capacity, const hasher_type& hasher, const keyeq_type& keyeq, const allocator_type& allocator)
-            : _threshold{default_threshold}, _sparsity{allocator, hasher}, _density{allocator, keyeq} {
+            : _threshold{default_threshold}, _hash_id{initial_hash_id}, _sparsity{allocator, hasher}, _density{allocator, keyeq} {
             reserve(capacity);
         }
 
@@ -132,15 +134,27 @@ namespace myth::core::container {
         dense_set(const dense_set& other, const allocator_type& allocator)
             : _sparsity{std::piecewise_construct, std::forward_as_tuple(other._sparsity.first(), allocator), std::forward_as_tuple(other._sparsity.second())},
             _density{std::piecewise_construct, std::forward_as_tuple(other._density.first(), allocator), std::forward_as_tuple(other._density.second())},
-            _threshold{other._threshold} {}
+            _threshold{other._threshold}, _hash_id{other._hash_id} {}
 
-        /** @brief Move constructor. */
-        dense_set(dense_set&& other) noexcept = default;
+        /**
+         * @brief Move constructor.
+         *
+         * Moves the sparse and dense containers from `other` via `std::move`, which transfers ownership
+         * of the internal vectors (stealing their pointers and leaving them empty). The hash-id and
+         * threshold are copied, then `other._hash_id` is reset to `initial_hash_id` so the moved-from
+         * set reports a consistent zero hash.
+         */
+        dense_set(dense_set&& other) noexcept
+            : _sparsity{std::move(other._sparsity)}, _density{std::move(other._density)},
+            _threshold{other._threshold}, _hash_id{other._hash_id} {
+            other.reset_hash_id();
+        }
 
         /**
          * @brief Allocator-extended move constructor.
          *
          * Moves the elements and functors from `other` while using `allocator` for the internal containers.
+         * Resets `other._hash_id` to `initial_hash_id` so the moved-from set reports a consistent zero hash.
          *
          * @param other     The dense set to move from.
          * @param allocator The allocator to use for the new containers.
@@ -148,7 +162,9 @@ namespace myth::core::container {
         dense_set(dense_set&& other, const allocator_type& allocator) noexcept
             : _density{std::piecewise_construct, std::forward_as_tuple(std::move(other._density.first()), allocator), std::forward_as_tuple(std::move(other._density.second()))},
             _sparsity{std::piecewise_construct, std::forward_as_tuple(std::move(other._sparsity.first()), allocator), std::forward_as_tuple(std::move(other._sparsity.second()))},
-            _threshold{other._threshold} {}
+            _threshold{other._threshold}, _hash_id{other._hash_id} {
+            other.reset_hash_id();
+        }
 
         /** @brief Destructor. */
         ~dense_set() noexcept = default;
@@ -156,22 +172,38 @@ namespace myth::core::container {
         /** @brief Copy assignment operator. */
         dense_set& operator=(const dense_set&) = default;
 
-        /** @brief Move assignment operator. */
-        dense_set& operator=(dense_set&&) noexcept = default;
+        /**
+         * @brief Move assignment operator.
+         *
+         * Guards against self-assignment, then move-assigns the sparse and dense containers (stealing
+         * the source vectors' pointers and freeing the target's old storage), copies the threshold and
+         * hash-id, and resets `other._hash_id` to `initial_hash_id`.
+         */
+        dense_set& operator=(dense_set&& other) noexcept {
+            if (this != &other) {
+                _sparsity = std::move(other._sparsity);
+                _density = std::move(other._density);
+                _threshold = other._threshold;
+                _hash_id = other._hash_id;
+                other.reset_hash_id();
+            }
+
+            return *this;
+        }
 
     public:
         /**
          * @brief Inserts a key into the set and returns true if success, otherwise returns false.
          *
-         * If the key already exists, it is not inserted again and return false. If the sparsity array 
+         * If the key already exists, it is not inserted again and return false. If the sparsity array
          * is empty (i.e. the set is in a moved-from state), `rehash(0u)` is called first to initialize
          * the bucket array. Hashes the key to locate its bucket, walks the bucket's chain to check for
          * duplicates, appends a new node to the density array (with the current bucket head as its next
-         * link), sets the bucket head to the new node, and triggers a rehash if the load factor exceeds
-         * `_threshold`, then returns true.
+         * link), sets the bucket head to the new node, XORs the key's hash into `_hash_id`, and triggers
+         * a rehash if the load factor exceeds `_threshold`, then returns true.
          *
          * @param key The key to insert.
-         * 
+         *
          * @return True if success, otherwise false.
          */
         [[nodiscard]] bool emplace_back(const key_type& key) {
@@ -187,6 +219,8 @@ namespace myth::core::container {
 
             _density.first().emplace_back(_sparsity.first()[bc], key);
             _sparsity.first()[bc] = size() - 1;
+
+            update_hash_id(key);
             rehash_if_required();
 
             return true;
@@ -196,9 +230,9 @@ namespace myth::core::container {
          * @brief Removes a key from the set. If the key does not exist, this is a no-op.
          *
          * Returns immediately if the set is empty. Otherwise, walks the bucket chain to locate
-         * the node containing the key, unlinks it from the chain, then calls `move_and_pop()` to
-         * compact the density array by back-filling the hole with the last element and patching
-         * the chain pointer that referenced it.
+         * the node containing the key, unlinks it from the chain, XORs the key's hash out of
+         * `_hash_id`, then calls `move_and_pop()` to compact the density array by back-filling
+         * the hole with the last element and patching the chain pointer that referenced it.
          *
          * @param key The key to remove.
          */
@@ -212,6 +246,8 @@ namespace myth::core::container {
                 if (_density.second()(_density.first()[*cur].second, key)) {
                     const size_type idx = *cur;
                     *cur = _density.first()[*cur].first;
+
+                    update_hash_id(key);
                     move_and_pop(idx);
                     break;
                 }
@@ -286,12 +322,14 @@ namespace myth::core::container {
         /**
          * @brief Clears all elements from the set and rehashes to the minimum bucket count.
          *
-         * The density and sparsity arrays are cleared, then `rehash(0u)` is called to restore
-         * `minimum_bucket_count` buckets. The load-factor threshold is preserved.
+         * The density and sparsity arrays are cleared, the XOR-accumulated hash is reset to zero,
+         * then `rehash(0u)` is called to restore `minimum_bucket_count` buckets. The load-factor
+         * threshold is preserved.
          */
         void clear() {
             _density.first().clear();
             _sparsity.first().clear();
+            reset_hash_id();
             rehash(0u);
         }
 
@@ -349,9 +387,6 @@ namespace myth::core::container {
         /** @brief Returns the capacity of the density array. */
         [[nodiscard]] size_type capacity() const noexcept { return _density.first().capacity(); }
 
-        /** @brief Accesses the key at the specified density index (mutable). */
-        [[nodiscard]] key_type& operator[](size_type idx) noexcept { return _density.first()[idx].second; }
-
         /** @brief Accesses the key at the specified density index (const). */
         [[nodiscard]] const key_type& operator[](size_type idx) const noexcept { return _density.first()[idx].second; }
 
@@ -364,8 +399,20 @@ namespace myth::core::container {
         /** @brief Returns the current max load factor threshold. */
         [[nodiscard]] const float max_load_factor() const noexcept { return _threshold; }
 
+        /**
+         * @brief Returns an XOR-accumulated hash of all keys currently in the set.
+         *
+         * Every key stored in the set contributes via `hash(key)` XOR'd into the accumulator on emplace,
+         * and XOR'd back out on erase. The result is a value that depends only on the set's membership
+         * (not on insertion order), making it suitable for use as a hash of the set itself.
+         *
+         * @return The XOR-accumulated hash of all keys.
+         */
+        [[nodiscard]] const size_type hash_id() const noexcept { return _hash_id; }
+
     private:
         float _threshold;
+        size_type _hash_id;
         sparsity_type _sparsity;
         density_type _density;
 
@@ -466,5 +513,55 @@ namespace myth::core::container {
 
             return null_key_index;
         }
+
+        /**
+         * @brief XORs the key's hash into the accumulated `_hash_id`.
+         *
+         * Called on `emplace_back` to add the key's contribution and on `erase` to remove it
+         * (XOR is its own inverse, so the same operation serves both purposes).
+         *
+         * @param key The key whose hash to XOR into the accumulator.
+         */
+        void update_hash_id(const key_type& key) noexcept {
+            _hash_id ^= _sparsity.second()(key);
+        }
+
+        /** @brief Resets the XOR-accumulated hash to `initial_hash_id` (zero). */
+        void reset_hash_id() noexcept {
+            _hash_id = initial_hash_id;
+        }
     };
 } // namespace myth::core::container
+
+namespace std {
+    /**
+     * @brief Specialization of `std::hash` for `myth::core::container::dense_set`.
+     *
+     * Delegates to `dense_set::hash_id()`, the XOR-accumulated hash of all keys in the set.
+     * Two sets with identical membership produce the same hash regardless of insertion order
+     * (XOR is commutative), making this suitable for use as a set-level hash.
+     */
+    template<
+        typename KeyType,
+        template<typename> typename Hash,
+        template<typename> typename KeyEqual,
+        template<typename> typename Allocator
+    >
+    struct hash<::myth::core::container::dense_set<KeyType, Hash, KeyEqual, Allocator>> {
+        /** @brief The set type being hashed. */
+        using argument_type = ::myth::core::container::dense_set<KeyType, Hash, KeyEqual, Allocator>;
+        /** @brief The result type of the hash function. */
+        using result_type = size_t;
+
+        /**
+         * @brief Returns the XOR-accumulated hash of the set.
+         *
+         * @param arg The dense set to hash.
+         *
+         * @return The hash value (same as `arg.hash_id()`).
+         */
+        [[nodiscard]] size_t operator()(const argument_type& arg) noexcept {
+            return arg.hash_id();
+        }
+    };
+} // namespace std
