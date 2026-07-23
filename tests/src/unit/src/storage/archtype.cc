@@ -602,3 +602,73 @@ TEST(Archtype, DeriveIdentity) {
     ASSERT_TRUE(reduced.matched(expect));
     ASSERT_TRUE(reduced.empty());
 }
+
+// ============================================================================
+// HashId - XOR-accumulated hash of the component-id set
+// ============================================================================
+TEST(Archtype, HashId) {
+    using entity_type = basic_entity<uint32_t, uint16_t>;
+    using archtype_type = archtype<entity_type, uint32_t>;
+    using ids_type = archtype_type::component_ids_type;
+    using hasher_t = std::hash<uint32_t>;
+
+    hasher_t hasher{};
+    const size_t initial = ids_type::initial_hash_id;
+
+    // An empty archetype has the initial hash_id.
+    archtype_type::meta_infos_type infos_empty;
+    archtype_type arch_empty(infos_empty);
+
+    ASSERT_TRUE(arch_empty.empty());
+    ASSERT_EQ(arch_empty.hash_id(), initial);
+
+    // Build an archetype with known component ids and compare hash_id against the
+    // XOR-accumulated expected value, computed with the same hasher the container uses.
+    archtype_type::meta_infos_type infos;
+    infos.emplace_back(CID_POS, INFO_POS);
+    infos.emplace_back(CID_VEL, INFO_VEL);
+    infos.emplace_back(CID_TAG, INFO_TAG);
+
+    archtype_type arch(infos);
+
+    size_t expected = initial;
+    expected ^= hasher(CID_POS);
+    expected ^= hasher(CID_VEL);
+    expected ^= hasher(CID_TAG);
+
+    ASSERT_EQ(arch.hash_id(), expected);
+
+    // A different set of component ids produces a different hash.
+    archtype_type::meta_infos_type infos2;
+    infos2.emplace_back(CID_POS, INFO_POS);
+
+    archtype_type arch2(infos2);
+
+    size_t expected2 = initial ^ hasher(CID_POS);
+    ASSERT_EQ(arch2.hash_id(), expected2);
+
+    // Two archetypes with the same component ids have the same hash_id,
+    // regardless of the order the component ids were registered.
+    archtype_type::meta_infos_type infos_a;
+    infos_a.emplace_back(CID_POS, INFO_POS);
+    infos_a.emplace_back(CID_TAG, INFO_TAG);
+
+    archtype_type::meta_infos_type infos_b;
+    infos_b.emplace_back(CID_TAG, INFO_TAG);
+    infos_b.emplace_back(CID_POS, INFO_POS);
+
+    archtype_type arch_a(infos_a);
+    archtype_type arch_b(infos_b);
+
+    size_t common = initial ^ hasher(CID_POS) ^ hasher(CID_TAG);
+    ASSERT_EQ(arch_a.hash_id(), common);
+    ASSERT_EQ(arch_b.hash_id(), common);
+
+    // std::hash<archtype> specialization delegates to hash_id().
+    using arch_hasher = std::hash<archtype_type>;
+    arch_hasher ah;
+
+    ASSERT_EQ(ah(arch_empty), initial);
+    ASSERT_EQ(ah(arch), expected);
+    ASSERT_EQ(ah(arch_a), ah(arch_b));
+}

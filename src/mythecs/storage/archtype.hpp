@@ -351,6 +351,16 @@ namespace myth::storage {
         /** @brief Returns the capacity of the archetype. */
         [[nodiscard]] size_type capacity() const noexcept { return _entity_ids.capacity(); }
 
+        /**
+         * @brief Returns the XOR-accumulated hash of the component-id set.
+         *
+         * Delegates to `_component_ids.hash_id()` so that two archetypes with identical
+         * component sets produce the same hash regardless of insertion order.
+         *
+         * @return The XOR-accumulated hash of the component ids.
+         */
+        [[nodiscard]] size_type hash_id() const noexcept { return _component_ids.hash_id(); }
+
     private:
         component_ids_type _component_ids;
         entity_ids_type _entity_ids;
@@ -373,3 +383,37 @@ namespace myth::storage {
             _tick_pool(_component_pool.size()) {}
     };
 } // namespace myth::storage
+
+namespace std {
+    /**
+     * @brief Specialization of `std::hash` for `myth::storage::archtype`.
+     *
+     * Delegates to `archtype::hash_id()`, which is the XOR-accumulated hash of the
+     * archetype's component-id set. Two archetypes with identical component membership
+     * produce the same hash regardless of insertion order (XOR is commutative).
+     */
+    template<
+        typename EntityType,
+        typename ComponentIdType,
+        template<typename> typename Hash,
+        template<typename> typename Equal,
+        template<typename> typename Allocator
+    >
+    struct hash<::myth::storage::archtype<EntityType, ComponentIdType, Hash, Equal, Allocator>> {
+        /** @brief The archetype type being hashed. */
+        using argument_type = ::myth::storage::archtype<EntityType, ComponentIdType, Hash, Equal, Allocator>;
+        /** @brief The result type of the hash function. */
+        using result_type = size_t;
+
+        /**
+         * @brief Returns the XOR-accumulated hash of the archetype's component set.
+         *
+         * @param arg The archetype to hash.
+         *
+         * @return The hash value (same as `arg.hash_id()`).
+         */
+        [[nodiscard]] size_t operator()(const argument_type& arg) noexcept {
+            return arg.hash_id();
+        }
+    };
+} // namespace std
