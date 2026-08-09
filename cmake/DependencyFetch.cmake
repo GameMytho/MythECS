@@ -13,6 +13,5 @@ function(fetch_dependency NAME URL)
         ${NAME}
         URL ${URL}
     )
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(${NAME})
 endfunction()
