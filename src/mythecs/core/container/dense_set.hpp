@@ -320,17 +320,17 @@ namespace myth::core::container {
         }
 
         /**
-         * @brief Clears all elements from the set and rehashes to the minimum bucket count.
+         * @brief Clears all elements from the set while preserving its bucket count.
          *
-         * The density and sparsity arrays are cleared, the XOR-accumulated hash is reset to zero,
-         * then `rehash(0u)` is called to restore `minimum_bucket_count` buckets. The load-factor
+         * The density array is cleared and every bucket head is reset to `null_key_index`, leaving
+         * the set empty but retaining both the density capacity and the current bucket count for
+         * reuse on subsequent insertions. The XOR-accumulated hash is reset to zero. The load-factor
          * threshold is preserved.
          */
         void clear() {
             _density.first().clear();
-            _sparsity.first().clear();
+            std::fill(_sparsity.first().begin(), _sparsity.first().end(), null_key_index);
             reset_hash_id();
-            rehash(0u);
         }
 
         /**

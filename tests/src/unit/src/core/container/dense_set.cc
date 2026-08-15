@@ -500,9 +500,11 @@ TEST(DenseSet, Rehash) {
         ASSERT_TRUE(set2.contains(i));
     }
 
-    // --- shrink_to_fit ---
+    // --- clear / shrink_to_fit ---
+    size_t set2_buckets = set2.bucket_count();
     set2.clear();
     ASSERT_TRUE(set2.empty());
+    ASSERT_EQ(set2.bucket_count(), set2_buckets);  // clear() preserves the bucket count
     set2.shrink_to_fit();
 
     ASSERT_GE(set2.bucket_count(), dense_set_type::minimum_bucket_count);
